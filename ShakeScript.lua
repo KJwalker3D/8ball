@@ -1,7 +1,5 @@
--- 100 coins developer product id: 3258288474
-
-local model = script.Parent
-local ball = model:WaitForChild("ball")
+local model = script.Parent -- The Magic8Ball model
+local ball = model:WaitForChild("ball") -- The MeshPart inside the model
 local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
@@ -34,17 +32,20 @@ local personalities = {
 	}}
 }
 
-local COIN_PACK_ID = 3258288474 -- Replace with your Product ID
+local COIN_PACK_ID = 3258288474 -- Your 100 Coins Developer Product ID
 
 local function shakeBall()
+	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles") -- Particles under the model
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
-		ball.Color = rand.color
+		ball.Color = rand.color -- Color the MeshPart
+		if particles then particles.Color = ColorSequence.new(rand.color) end -- Sync particles
 		wait(0.2 - (i * 0.01))
 	end
 	local final = personalities[math.random(1, #personalities)]
-	ball.Color = final.color
-	ball:SetAttribute("Personality", final.type)
+	ball.Color = final.color -- Final color on MeshPart
+	if particles then particles.Color = ColorSequence.new(final.color) end -- Final particle color
+	ball:SetAttribute("Personality", final.type) -- Attribute on MeshPart
 	return final
 end
 
