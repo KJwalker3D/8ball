@@ -1,9 +1,10 @@
-local model = script.Parent -- The Magic8Ball model
-local ball = model:WaitForChild("ball") -- The MeshPart inside the model
+local model = script.Parent
+local ball = model:WaitForChild("ball")
 local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
+local TweenService = game:GetService("TweenService")
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -32,20 +33,25 @@ local personalities = {
 	}}
 }
 
-local COIN_PACK_ID = 3258288474 -- Your 100 Coins Developer Product ID
+local COIN_PACK_ID = 3258288474
 
 local function shakeBall()
-	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles") -- Particles under the model
+	local particles = model:FindFirstChild("BallSparkles")
+	local originalCFrame = ball.CFrame -- Use ball's CFrame as anchor
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
-		ball.Color = rand.color -- Color the MeshPart
-		if particles then particles.Color = ColorSequence.new(rand.color) end -- Sync particles
+		ball.Color = rand.color
+		if particles then particles.Color = ColorSequence.new(rand.color) end
+		-- Shake entire model via ball
+		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
+		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
 		wait(0.2 - (i * 0.01))
 	end
 	local final = personalities[math.random(1, #personalities)]
-	ball.Color = final.color -- Final color on MeshPart
-	if particles then particles.Color = ColorSequence.new(final.color) end -- Final particle color
-	ball:SetAttribute("Personality", final.type) -- Attribute on MeshPart
+	ball.Color = final.color
+	if particles then particles.Color = ColorSequence.new(final.color) end
+	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play() -- Reset
+	ball:SetAttribute("Personality", final.type)
 	return final
 end
 
@@ -99,7 +105,7 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	if receiptInfo.ProductId == COIN_PACK_ID then
 		local coins = player:WaitForChild("Coins")
 		coins.Value = coins.Value + 100
-		shakeEvent:FireClient(player, {type = "Init"}, coins.Value) -- Sync coins
+		shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
