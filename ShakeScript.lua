@@ -78,7 +78,12 @@ game.Players.PlayerAdded:Connect(function(player)
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 end)
 
+local clickBallSound = Instance.new("Sound") -- Add click sound
+clickBallSound.SoundId = "rbxassetid://9125397583"
+clickBallSound.Parent = ball
+
 clickDetector.MouseClick:Connect(function(player)
+	clickBallSound:Play() -- Play on click
 	shakeEvent:FireClient(player, {type = "ShowQuestion"}, player:WaitForChild("Coins").Value)
 end)
 

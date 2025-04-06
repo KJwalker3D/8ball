@@ -15,6 +15,10 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ShakeGui"
 screenGui.Parent = playerGui
 
+local clickSound = Instance.new("Sound") -- Add click sound
+clickSound.SoundId = "rbxassetid://9125397583"
+clickSound.Parent = playerGui
+
 -- Coin Counter
 local coinFrame = Instance.new("Frame")
 coinFrame.Size = UDim2.new(0, 140, 0, 50)
@@ -251,6 +255,7 @@ end)
 
 -- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
+	clickSound:Play() -- Play on click
 	questionFrame.Visible = false
 	shakeSound:Play()
 	shakeEvent:FireServer()
@@ -258,6 +263,7 @@ end)
 
 -- Handle shop button
 shopButton.MouseButton1Click:Connect(function()
+	clickSound:Play() -- Play on click
 	shopFrame.Visible = true
 	questionFrame.Visible = false
 	responseFrame.Visible = false
@@ -265,17 +271,20 @@ end)
 
 -- Handle reroll
 rerollButton.MouseButton1Click:Connect(function()
+	clickSound:Play() -- Play on click
 	rerollEvent:FireServer()
 	shopFrame.Visible = false
 end)
 
 -- Handle coin pack
 coinPackButton.MouseButton1Click:Connect(function()
+	clickSound:Play() -- Play on click
 	MarketplaceService:PromptProductPurchase(player, COIN_PACK_ID)
 end)
 
 -- Handle close shop
 closeShopButton.MouseButton1Click:Connect(function()
+	clickSound:Play() -- Play on click
 	shopFrame.Visible = false
 end)
 
