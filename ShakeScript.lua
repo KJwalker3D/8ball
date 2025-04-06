@@ -1,5 +1,6 @@
 local model = script.Parent
 local ball = model:WaitForChild("ball")
+local part = model:WaitForChild("Part")
 local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
@@ -42,7 +43,7 @@ local COIN_PACK_ID = 3258288474
 
 local function shakeBall()
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
-	local celebParticles = model:FindFirstChild("CelebrationParticles")
+	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:FindFirstChild("CelebrationSound")
 	local originalCFrame = ball.CFrame -- Use ball's CFrame as anchor
 	local text = model:FindFirstChild("Text")
