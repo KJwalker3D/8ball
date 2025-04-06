@@ -1,7 +1,8 @@
 -- 100 coins developer product id: 3258288474
 
-local ball = script.Parent
-local clickDetector = ball:WaitForChild("ClickDetector")
+local model = script.Parent
+local ball = model:WaitForChild("ball")
+local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
