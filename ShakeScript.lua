@@ -42,6 +42,8 @@ local COIN_PACK_ID = 3258288474
 
 local function shakeBall()
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
+	local celebParticles = model:FindFirstChild("CelebrationParticles")
+	local celebSound = model:FindFirstChild("CelebrationSound")
 	local originalCFrame = ball.CFrame -- Use ball's CFrame as anchor
 	local text = model:FindFirstChild("Text")
 	local ballToon = model:FindFirstChild("ballToon")
@@ -66,6 +68,33 @@ local function shakeBall()
 
 
 	ball:SetAttribute("Personality", final.type)
+	
+	-- CELEBRATION
+	if final.type == "Angry" then
+		celebParticles.Texture = "rbxassetid://16933997761"
+		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+		celebSound.SoundId = "rbxassetid://186669531"
+	elseif final.type == "Mysterious" then
+		celebParticles.Texture = "rbxassetid://6700009498"
+		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 0, 255))
+		celebSound.SoundId = "rbxassetid://9116395089"
+	elseif final.type == "Sweet" then
+		celebParticles.Texture = "rbxassetid://5762409776"
+		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 105, 180))
+		celebSound.SoundId = "rbxassetid://111598396888819"
+	elseif final.type == "Sarcastic" then
+		celebParticles.Texture = "rbxassetid://16908034492"
+		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0))
+		celebSound.SoundId = "rbxassetid://18204124897"
+	end
+	celebParticles.Enabled = true
+	celebSound:Play()
+	wait(1)
+	celebParticles.Enabled = false
+	
+	
+
+	
 	return final
 end
 
