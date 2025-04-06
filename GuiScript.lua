@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = player:WaitForChild("PlayerGui")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
+local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -23,6 +24,15 @@ coinLabel.Text = "Coins: 0"
 coinLabel.TextScaled = true
 coinLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
 coinLabel.Parent = coinFrame
+
+-- Shop Button
+local shopButton = Instance.new("TextButton")
+shopButton.Size = UDim2.new(0, 60, 0, 30)
+shopButton.Position = UDim2.new(0, 120, 0, 10)
+shopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+shopButton.Text = "Shop"
+shopButton.TextScaled = true
+shopButton.Parent = screenGui
 
 -- Question Frame
 local questionFrame = Instance.new("Frame")
@@ -68,9 +78,23 @@ responseLabel.TextScaled = true
 responseLabel.TextWrapped = true
 responseLabel.Parent = responseFrame
 
--- Coin Logic (client-side display, server will manage actual value)
-local coins = 0
-coinLabel.Text = "Coins: " .. coins
+-- Shop Frame
+local shopFrame = Instance.new("Frame")
+shopFrame.Size = UDim2.new(0, 300, 0, 200)
+shopFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+shopFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+shopFrame.BackgroundTransparency = 0.2
+shopFrame.BorderSizePixel = 0
+shopFrame.Visible = false
+shopFrame.Parent = screenGui
+
+local rerollButton = Instance.new("TextButton")
+rerollButton.Size = UDim2.new(0, 100, 0, 40)
+rerollButton.Position = UDim2.new(0.5, -50, 0, 20)
+rerollButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+rerollButton.Text = "Reroll (100)"
+rerollButton.TextScaled = true
+rerollButton.Parent = shopFrame
 
 -- Handle 8 Ball click
 local ball = game.Workspace:WaitForChild("Magic8Ball")
@@ -79,20 +103,34 @@ local clickDetector = ball:WaitForChild("ClickDetector")
 clickDetector.MouseClick:Connect(function()
 	questionFrame.Visible = true
 	responseFrame.Visible = false
+	shopFrame.Visible = false
 end)
 
 -- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
 	questionFrame.Visible = false
-	-- No need to trigger shake here; server handles it via ClickDetector
 end)
 
--- Handle server response
-shakeEvent.OnClientEvent:Connect(function(final)
-	coins = coins + 5 -- Add 5 coins per question (server will sync later)
-	coinLabel.Text = "Coins: " .. coins
-	responseLabel.Text = final.responses[math.random(1, #final.responses)]
-	responseLabel.TextColor3 = final.color
-	responseLabel.Font = final.font
-	responseFrame.Visible = true
+-- Handle shop button
+shopButton.MouseButton1Click:Connect(function()
+	shopFrame.Visible = true
+	questionFrame.Visible = false
+	responseFrame.Visible = false
+end)
+
+-- Handle reroll
+rerollButton.MouseButton1Click:Connect(function()
+	rerollEvent:FireServer()
+	shopFrame.Visible = false
+end)
+
+-- Update coins and response from server
+shakeEvent.OnClientEvent:Connect(function(final, coinValue)
+	coinLabel.Text = "Coins: " .. coinValue
+	if final.type ~= "Init" then
+		responseLabel.Text = final.responses[math.random(1, #final.responses)]
+		responseLabel.TextColor3 = final.color
+		responseLabel.Font = final.font
+		responseFrame.Visible = true
+	end
 end)

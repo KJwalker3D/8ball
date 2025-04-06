@@ -1,6 +1,7 @@
 local ball = script.Parent
 local clickDetector = ball:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
+local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -41,7 +42,43 @@ local function shakeBall()
 	return final
 end
 
+game.Players.PlayerAdded:Connect(function(player)
+	local coins = Instance.new("IntValue")
+	coins.Name = "Coins"
+	coins.Value = 100 -- Start with 100 coins
+	coins.Parent = player
+
+	local lastClaim = Instance.new("IntValue")
+	lastClaim.Name = "LastClaim"
+	lastClaim.Value = os.time() -- Set to now so next claim is in 24h
+	lastClaim.Parent = player
+
+	-- Sync initial coins to client
+	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
+end)
+
 clickDetector.MouseClick:Connect(function(player)
+	local coins = player:WaitForChild("Coins")
+	local lastClaim = player:WaitForChild("LastClaim")
+
+	-- Daily claim check
+	local currentTime = os.time()
+	local dayInSeconds = 24 * 60 * 60
+	if currentTime - lastClaim.Value >= dayInSeconds then
+		coins.Value = coins.Value + 100
+		lastClaim.Value = currentTime
+	end
+
 	local final = shakeBall()
-	shakeEvent:FireClient(player, final) -- Send result to client
+	coins.Value = coins.Value + 5 -- Add 5 coins per question
+	shakeEvent:FireClient(player, final, coins.Value)
+end)
+
+rerollEvent.OnServerEvent:Connect(function(player)
+	local coins = player:WaitForChild("Coins")
+	if coins.Value >= 100 then
+		coins.Value = coins.Value - 100
+		local final = shakeBall()
+		shakeEvent:FireClient(player, final, coins.Value)
+	end
 end)
