@@ -36,8 +36,10 @@ local personalities = {
 local COIN_PACK_ID = 3258288474
 
 local function shakeBall()
-	local particles = model:FindFirstChild("BallSparkles")
+	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local originalCFrame = ball.CFrame -- Use ball's CFrame as anchor
+	local text = model:FindFirstChild("Text")
+	local ballToon = model:FindFirstChild("ballToon")
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
 		ball.Color = rand.color
@@ -45,12 +47,19 @@ local function shakeBall()
 		-- Shake entire model via ball
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
 		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
+		TweenService:Create(text, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
+		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
+
 		wait(0.2 - (i * 0.01))
 	end
 	local final = personalities[math.random(1, #personalities)]
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play() -- Reset
+	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play() -- Reset
+	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play() -- Reset
+
+
 	ball:SetAttribute("Personality", final.type)
 	return final
 end

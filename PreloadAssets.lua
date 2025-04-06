@@ -1,3 +1,6 @@
+-- This script should be local
+
+
 print("preloading assets")
 local ContentProvider = game:GetService("ContentProvider")
 local assets = {
