@@ -96,19 +96,34 @@ rerollButton.Text = "Reroll (100)"
 rerollButton.TextScaled = true
 rerollButton.Parent = shopFrame
 
--- Handle 8 Ball click
+local coinPackButton = Instance.new("TextButton")
+coinPackButton.Size = UDim2.new(0, 100, 0, 40)
+coinPackButton.Position = UDim2.new(0.5, -50, 0, 70)
+coinPackButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+coinPackButton.Text = "100 Coins (25R$)"
+coinPackButton.TextScaled = true
+coinPackButton.Parent = shopFrame
+
+local closeShopButton = Instance.new("TextButton")
+closeShopButton.Size = UDim2.new(0, 40, 0, 40)
+closeShopButton.Position = UDim2.new(1, -50, 0, 10)
+closeShopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeShopButton.Text = "X"
+closeShopButton.TextScaled = true
+closeShopButton.Parent = shopFrame
+
+-- Handle 8 Ball click (client-side)
 local ball = game.Workspace:WaitForChild("Magic8Ball")
 local clickDetector = ball:WaitForChild("ClickDetector")
 
 clickDetector.MouseClick:Connect(function()
-	questionFrame.Visible = true
-	responseFrame.Visible = false
-	shopFrame.Visible = false
+	-- Handled by server via shakeEvent
 end)
 
 -- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
 	questionFrame.Visible = false
+	shakeEvent:FireServer()
 end)
 
 -- Handle shop button
@@ -124,10 +139,24 @@ rerollButton.MouseButton1Click:Connect(function()
 	shopFrame.Visible = false
 end)
 
+-- Handle coin pack (placeholder)
+coinPackButton.MouseButton1Click:Connect(function()
+	print("Coin pack purchase placeholder - requires Marketplace setup")
+end)
+
+-- Handle close shop
+closeShopButton.MouseButton1Click:Connect(function()
+	shopFrame.Visible = false
+end)
+
 -- Update coins and response from server
 shakeEvent.OnClientEvent:Connect(function(final, coinValue)
 	coinLabel.Text = "Coins: " .. coinValue
-	if final.type ~= "Init" then
+	if final.type == "ShowQuestion" then
+		questionFrame.Visible = true
+		responseFrame.Visible = false
+		shopFrame.Visible = false
+	elseif final.type ~= "Init" then
 		responseLabel.Text = final.responses[math.random(1, #final.responses)]
 		responseLabel.TextColor3 = final.color
 		responseLabel.Font = final.font

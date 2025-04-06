@@ -45,23 +45,26 @@ end
 game.Players.PlayerAdded:Connect(function(player)
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
-	coins.Value = 100 -- Start with 100 coins
+	coins.Value = 100
 	coins.Parent = player
 
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
-	lastClaim.Value = os.time() -- Set to now so next claim is in 24h
+	lastClaim.Value = os.time()
 	lastClaim.Parent = player
 
-	-- Sync initial coins to client
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 end)
 
 clickDetector.MouseClick:Connect(function(player)
+	-- Don’t shake yet, just notify client to show GUI
+	shakeEvent:FireClient(player, {type = "ShowQuestion"}, player:WaitForChild("Coins").Value)
+end)
+
+shakeEvent.OnServerEvent:Connect(function(player)
 	local coins = player:WaitForChild("Coins")
 	local lastClaim = player:WaitForChild("LastClaim")
 
-	-- Daily claim check
 	local currentTime = os.time()
 	local dayInSeconds = 24 * 60 * 60
 	if currentTime - lastClaim.Value >= dayInSeconds then
@@ -70,7 +73,7 @@ clickDetector.MouseClick:Connect(function(player)
 	end
 
 	local final = shakeBall()
-	coins.Value = coins.Value + 5 -- Add 5 coins per question
+	coins.Value = coins.Value + 5
 	shakeEvent:FireClient(player, final, coins.Value)
 end)
 
