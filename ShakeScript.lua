@@ -6,6 +6,11 @@ local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 
+local coinSound = Instance.new("Sound")
+coinSound.SoundId = "rbxassetid://607665037"
+coinSound.Parent = model
+
+
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
 		"YES, YOU FOOL!", "NO, STOP WASTING MY TIME!", "MAYBE, IF YOU SHUT UP!",
@@ -96,10 +101,12 @@ shakeEvent.OnServerEvent:Connect(function(player)
 	if currentTime - lastClaim.Value >= dayInSeconds then
 		coins.Value = coins.Value + 100
 		lastClaim.Value = currentTime
+		coinSound:Play() -- daily coins sound
 	end
 
 	local final = shakeBall()
 	coins.Value = coins.Value + 5
+	coinSound:Play() -- reward for clicking 
 	shakeEvent:FireClient(player, final, coins.Value)
 end)
 
