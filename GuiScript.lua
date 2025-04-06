@@ -1,8 +1,11 @@
 local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = player:WaitForChild("PlayerGui")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
+
+local COIN_PACK_ID = 3258288474 -- Replace with your Product ID
 
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -112,17 +115,23 @@ closeShopButton.Text = "X"
 closeShopButton.TextScaled = true
 closeShopButton.Parent = shopFrame
 
--- Handle 8 Ball click (client-side)
+-- Sound
+local shakeSound = Instance.new("Sound")
+shakeSound.SoundId = "rbxassetid://18769017543" -- Spray can rattle sound by NayMecou
+shakeSound.Parent = game.Workspace.Magic8Ball
+
+-- Handle 8 Ball click
 local ball = game.Workspace:WaitForChild("Magic8Ball")
 local clickDetector = ball:WaitForChild("ClickDetector")
 
 clickDetector.MouseClick:Connect(function()
-	-- Handled by server via shakeEvent
+	-- Handled by server
 end)
 
 -- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
 	questionFrame.Visible = false
+	shakeSound:Play()
 	shakeEvent:FireServer()
 end)
 
@@ -139,9 +148,9 @@ rerollButton.MouseButton1Click:Connect(function()
 	shopFrame.Visible = false
 end)
 
--- Handle coin pack (placeholder)
+-- Handle coin pack
 coinPackButton.MouseButton1Click:Connect(function()
-	print("Coin pack purchase placeholder - requires Marketplace setup")
+	MarketplaceService:PromptProductPurchase(player, COIN_PACK_ID)
 end)
 
 -- Handle close shop

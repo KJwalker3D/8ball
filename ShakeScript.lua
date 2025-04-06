@@ -1,7 +1,10 @@
+-- 100 coins developer product id: 3258288474
+
 local ball = script.Parent
 local clickDetector = ball:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -30,6 +33,8 @@ local personalities = {
 	}}
 }
 
+local COIN_PACK_ID = 3258288474 -- Replace with your Product ID
+
 local function shakeBall()
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
@@ -57,7 +62,6 @@ game.Players.PlayerAdded:Connect(function(player)
 end)
 
 clickDetector.MouseClick:Connect(function(player)
-	-- Don’t shake yet, just notify client to show GUI
 	shakeEvent:FireClient(player, {type = "ShowQuestion"}, player:WaitForChild("Coins").Value)
 end)
 
@@ -85,3 +89,17 @@ rerollEvent.OnServerEvent:Connect(function(player)
 		shakeEvent:FireClient(player, final, coins.Value)
 	end
 end)
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local player = game.Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
+
+	if receiptInfo.ProductId == COIN_PACK_ID then
+		local coins = player:WaitForChild("Coins")
+		coins.Value = coins.Value + 100
+		shakeEvent:FireClient(player, {type = "Init"}, coins.Value) -- Sync coins
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
