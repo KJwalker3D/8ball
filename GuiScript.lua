@@ -274,8 +274,9 @@ closeShopButton.MouseButton1Click:Connect(function()
 end)
 
 local function showCoinPopup(amount)
-	coinPopup.Text = amount > 0 and "+" .. amount or tostring(amount)
-	coinPopup.TextColor3 = amount > 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 0, 0)
+	if coinPopup.Visible then wait(0.1) end -- Prevent overlap
+	coinPopup.Text = amount >= 0 and "+" .. amount or tostring(amount)
+	coinPopup.TextColor3 = amount >= 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 50, 50)
 	coinPopup.Visible = true
 	local tween = TweenService:Create(coinPopup, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 150, 0, 30), Transparency = 1})
 	tween:Play()
@@ -286,6 +287,25 @@ local function showCoinPopup(amount)
 	end)
 end
 
+local function showResponse(data, coins, coinAmount)
+	-- Reset and pre-set everything while invisible
+	responseFrame.Visible = false
+	responseFrame.BackgroundTransparency = 0.2
+	responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
+	responseLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
+	responseLabel.TextColor3 = data.personality.color
+	responseLabel.Font = data.personality.font
+	coinLabel.Text = "Coins: " .. coins
+	-- Show and animate
+	questionFrame.Visible = false
+	responseFrame.Visible = true
+	showCoinPopup(coinAmount)
+	wait(2)
+	TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
+	wait(0.5)
+	responseFrame.Visible = false
+end
+
 shakeEvent.OnClientEvent:Connect(function(data, coins)
 	if data.type == "Init" then
 		coinLabel.Text = "Coins: " .. coins
@@ -294,32 +314,8 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		questionFrame.Visible = true
 		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
-		questionFrame.Visible = false
-		responseFrame.Visible = true
-		responseLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
-		responseLabel.TextColor3 = data.personality.color
-		responseLabel.Font = data.personality.font
-		coinLabel.Text = "Coins: " .. coins
-		showCoinPopup(5)
-		wait(2)
-		TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
-		wait(0.5)
-		responseFrame.Visible = false
-		responseFrame.BackgroundTransparency = 0.2
-		responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
+		showResponse(data, coins, 5)
 	elseif data.type == "RerollResponse" then
-		questionFrame.Visible = false
-		responseFrame.Visible = true
-		responseLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
-		responseLabel.TextColor3 = data.personality.color
-		responseLabel.Font = data.personality.font
-		coinLabel.Text = "Coins: " .. coins
-		showCoinPopup(-100)
-		wait(2)
-		TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
-		wait(0.5)
-		responseFrame.Visible = false
-		responseFrame.BackgroundTransparency = 0.2
-		responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
+		showResponse(data, coins, -100)
 	end
 end)
