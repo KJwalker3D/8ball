@@ -73,10 +73,11 @@ end)
 shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
 	local coins = player:WaitForChild("Coins")
+	local vip = player:WaitForChild("VIP")
 	local final = shakeBall()
-	coins.Value = coins.Value + 5
-	CoinSaver.saveCoins(player)
+	coins.Value = coins.Value + (vip.Value and 10 or 5)
 	coinSound:Play()
+	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
 

@@ -12,18 +12,18 @@ coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local personality = {
-	color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
-		"YES, YOU FOOL!", "NO, STOP WASTING MY TIME!", "MAYBE, IF YOU SHUT UP!",
-		"YES, NOW GO AWAY!", "NO, YOU DON’T DESERVE IT!", "ASK AGAIN, I DARE YOU!",
-		"YES, AND I HATE YOU FOR IT!", "NO, YOU’RE TOO DUMB!", "MAYBE, STOP BUGGING ME!",
-		"YES, GRRRR!"
+	color = Color3.fromRGB(147, 112, 219), type = "Cosmic", font = Enum.Font.SciFi, responses = {
+		"The galaxy decrees… YES!", "No, the void consumes it.", "Maybe, the stars are unsure.",
+		"YES, a cosmic truth!", "NO, lost in the nebula.", "Maybe, the universe spins.",
+		"YES, etched in stardust!", "NO, beyond the event horizon.", "Maybe, a quantum flicker.",
+		"YES, the cosmos aligns!"
 	}
 }
 
 local function shakeBall()
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
-	local celebSound = model:FindFirstChild("CelebrationSound")
+	local celebSound = model:WaitForChild("CelebrationSound")
 	local originalCFrame = ball.CFrame
 	local ballOriginalSize = ball.Size
 	local text = model:WaitForChild("Text")
@@ -46,14 +46,13 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://16933997761"
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
-	celebSound.SoundId = "rbxassetid://186669531"
+	celebParticles.Texture = "rbxassetid://6700009498" -- Starry effect
+	celebParticles.Color = ColorSequence.new(Color3.fromRGB(147, 112, 219))
+	celebSound.SoundId = "rbxassetid://9116395089" -- Ethereal sound
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
 	celebParticles.Enabled = false
-	-- Explicit reset after celebration
 	ball.Size = ballOriginalSize
 	text.Size = textOriginalSize
 	ballToon.Size = toonOriginalSize
@@ -66,15 +65,21 @@ clickBallSound.Parent = ball
 
 clickDetector.MouseClick:Connect(function(player)
 	clickBallSound:Play()
+	local vip = player:WaitForChild("VIP")
+	if not vip.Value then
+		shakeEvent:FireClient(player, {type = "Response", ball = model, personality = {responses = {"VIP Only!"}, color = Color3.fromRGB(255, 215, 0), font = Enum.Font.SourceSansBold}}, player:WaitForChild("Coins").Value)
+		return
+	end
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
 
 shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
-	local coins = player:WaitForChild("Coins")
 	local vip = player:WaitForChild("VIP")
+	if not vip.Value then return end
+	local coins = player:WaitForChild("Coins")
 	local final = shakeBall()
-	coins.Value = coins.Value + (vip.Value and 10 or 5)
+	coins.Value = coins.Value + 10 -- VIP bonus
 	coinSound:Play()
 	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
@@ -82,11 +87,13 @@ end)
 
 rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
+	local vip = player:WaitForChild("VIP")
+	if not vip.Value then return end
 	local coins = player:WaitForChild("Coins")
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
-		CoinSaver.saveCoins(player)
 		local final = shakeBall()
+		CoinSaver.saveData(player)
 		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
 end)

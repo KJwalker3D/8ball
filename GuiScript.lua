@@ -7,6 +7,8 @@ local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = player:WaitForChild("PlayerGui")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
+local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
+
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ShakeGui"
@@ -175,6 +177,24 @@ shopTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 shopTitle.Font = Enum.Font.SourceSansBold
 shopTitle.Parent = shopFrame
 
+-- [Existing code until Shop Frame]
+local vipButton = Instance.new("TextButton")
+vipButton.Size = UDim2.new(0, 140, 0, 60)
+vipButton.Position = UDim2.new(0.5, -70, 0, 240) -- Below coin pack
+vipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+vipButton.Text = "VIP Pass (50R$)"
+vipButton.TextScaled = true
+vipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+vipButton.Font = Enum.Font.SourceSansBold
+vipButton.Parent = shopFrame
+local vipCorner = Instance.new("UICorner")
+vipCorner.CornerRadius = UDim.new(0, 15)
+vipCorner.Parent = vipButton
+local vipGradient = Instance.new("UIGradient")
+vipGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 0))}
+vipGradient.Rotation = 90
+vipGradient.Parent = vipButton
+
 local rerollButton = Instance.new("TextButton")
 rerollButton.Size = UDim2.new(0, 140, 0, 60)
 rerollButton.Position = UDim2.new(0.5, -70, 0, 80)
@@ -237,6 +257,7 @@ addHoverEffect(shakeButton)
 addHoverEffect(rerollButton)
 addHoverEffect(coinPackButton)
 addHoverEffect(closeShopButton)
+addHoverEffect(vipButton)
 
 shakeButton.MouseButton1Click:Connect(function()
 	if currentBall then
@@ -262,6 +283,12 @@ rerollButton.MouseButton1Click:Connect(function()
 		shopFrame.Visible = false
 	end
 end)
+
+vipButton.MouseButton1Click:Connect(function()
+	clickSound:Play()
+	buyVIPEvent:FireServer()
+end)
+
 
 coinPackButton.MouseButton1Click:Connect(function()
 	clickSound:Play()

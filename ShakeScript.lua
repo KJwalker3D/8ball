@@ -8,12 +8,15 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local CoinSaver = require(game.ServerScriptService.CoinSaver)
+local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
+
 
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local COIN_PACK_ID = 3258288474
+local VIP_PASS_ID = 3259877070 -- Placeholder, replace with real ProductId
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -104,10 +107,15 @@ local function loadCoins(player)
 end
 
 Players.PlayerAdded:Connect(function(player)
+	local data = CoinSaver.loadData(player)
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
-	coins.Value = loadCoins(player)
+	coins.Value = data.Coins
 	coins.Parent = player
+	local vip = Instance.new("BoolValue")
+	vip.Name = "VIP"
+	vip.Value = data.VIP
+	vip.Parent = player
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
 	lastClaim.Value = os.time()
@@ -116,12 +124,12 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	CoinSaver.saveCoins(player)
+	CoinSaver.saveData(player)
 end)
 
 game:BindToClose(function()
 	for _, player in pairs(Players:GetPlayers()) do
-		CoinSaver.saveCoins(player)
+		CoinSaver.saveData(player)
 	end
 end)
 
@@ -137,6 +145,7 @@ end)
 shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
 	local coins = player:WaitForChild("Coins")
+	local vip = player:WaitForChild("VIP")
 	local lastClaim = player:WaitForChild("LastClaim")
 	local currentTime = os.time()
 	local dayInSeconds = 24 * 60 * 60
@@ -146,9 +155,9 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 		coinSound:Play()
 	end
 	local final = shakeBall()
-	coins.Value = coins.Value + 5
+	coins.Value = coins.Value + (vip.Value and 10 or 5) -- VIP gets +10
 	coinSound:Play()
-	CoinSaver.saveCoins(player)
+	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
 
@@ -163,14 +172,24 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	end
 end)
 
+buyVIPEvent.OnServerEvent:Connect(function(player)
+	MarketplaceService:PromptProductPurchase(player, VIP_PASS_ID)
+end)
+
 MarketplaceService.ProcessReceipt = function(receiptInfo)
 	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
 	if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
 	if receiptInfo.ProductId == COIN_PACK_ID then
 		local coins = player:WaitForChild("Coins")
 		coins.Value = coins.Value + 100
-		CoinSaver.saveCoins(player)
+		CoinSaver.saveData(player)
 		shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	elseif receiptInfo.ProductId == VIP_PASS_ID then
+		local vip = player:WaitForChild("VIP")
+		vip.Value = true
+		CoinSaver.saveData(player)
+		shakeEvent:FireClient(player, {type = "Init"}, player:WaitForChild("Coins").Value)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 	return Enum.ProductPurchaseDecision.NotProcessedYet
