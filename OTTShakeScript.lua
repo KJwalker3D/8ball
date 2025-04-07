@@ -12,11 +12,17 @@ coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local personality = {
-	color = Color3.fromRGB(147, 112, 219), type = "Cosmic", font = Enum.Font.SciFi, responses = {
-		"The galaxy decrees… YES!", "No, the void consumes it.", "Maybe, the stars are unsure.",
-		"YES, a cosmic truth!", "NO, lost in the nebula.", "Maybe, the universe spins.",
-		"YES, etched in stardust!", "NO, beyond the event horizon.", "Maybe, a quantum flicker.",
-		"YES, the cosmos aligns!"
+	color = Color3.fromRGB(255, 69, 0), type = "OTT", font = Enum.Font.Creepster, responses = {
+		"Yes, it’s a unicorn stampede of awesome!",
+		"No, but here’s a rainbow hug anyway!",
+		"Maybe, ooh, the crystal ball’s twinkling with secrets!",
+		"Yes, yes, yes—woohoo!",
+		"No, don’t crylet’s chase butterflies instead!",
+		"Maybe yes, maybe no—it’s a total rainbow rollercoaster!",
+		"Yes, 100% unicorn power!",
+		"No, aw bummer, but you’re still super-duper!",
+		"Maybe, let’s sprinkle some fairy dust and see!",
+		"Yes, it’s a double-rainbow victory—yay you!"
 	}
 }
 
@@ -46,9 +52,9 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://6700009498" -- Starry effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(147, 112, 219))
-	celebSound.SoundId = "rbxassetid://9116395089" -- Ethereal sound
+	celebParticles.Texture = "rbxassetid://16908034492" -- Wild effect
+	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 69, 0))
+	celebSound.SoundId = "rbxassetid://18204124897" -- Chaotic laugh
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)

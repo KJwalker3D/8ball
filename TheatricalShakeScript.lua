@@ -12,11 +12,17 @@ coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local personality = {
-	color = Color3.fromRGB(255, 69, 0), type = "Chaos", font = Enum.Font.Creepster, responses = {
-		"YES, TOTAL MAYHEM!", "NO, CHAOS REJECTS IT!", "Maybe, flip a coin, idiot!",
-		"YES, BURN IT ALL!", "NO, ORDER IS DEAD!", "Maybe, who even knows?",
-		"YES, WREAK HAVOC!", "NO, TOO SANE FOR ME!", "Maybe, spin the wheel of fate!",
-		"YES, UNLEASH THE STORM!"
+	color = Color3.fromRGB(147, 112, 219), type = "Theatric", font = Enum.Font.SciFi, responses = {
+		"Yea, by mine Troth, the Heavens doth proclaim it so!",
+		"Nay, woe betide thee, a Tragedy most dire!",
+		"Perchance, the Fates do weave their thread in Shadow!",
+		"Yea, a Triumph doth blaze forth in glorious Splendour!",
+		"Nay, alas, thy Soul be cast into the Abyss of sorrow!",
+		"Perchance, a twist of Fortune doth dance in the Gloom!",
+		"Yea, the Tapestry of destiny be woven with Gold!",
+		"Nay, the Knell of doom doth ring for thee, poor Wretch!",
+		"Perchance, suspense doth linger like a Mist o’er the moor!",
+		"Yea, hark, the Ages shall sing of this noble Deed!"
 	}
 }
 
@@ -46,9 +52,9 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://16908034492" -- Wild effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 69, 0))
-	celebSound.SoundId = "rbxassetid://18204124897" -- Chaotic laugh
+	celebParticles.Texture = "rbxassetid://6700009498" -- Starry effect
+	celebParticles.Color = ColorSequence.new(Color3.fromRGB(147, 112, 219))
+	celebSound.SoundId = "rbxassetid://9116395089" -- Ethereal sound
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
