@@ -10,9 +10,10 @@ local CoinSaver = require(game.ServerScriptService.CoinSaver)
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
+local OTTcolor = Color3.fromRGB(255, 176, 0)
 
 local personality = {
-	color = Color3.fromRGB(255, 69, 0), type = "OTT", font = Enum.Font.Creepster, responses = {
+	color = OTTcolor, type = "OTT", font = Enum.Font.Cartoon, responses = {
 		"Yes, it’s a unicorn stampede of awesome!",
 		"No, but here’s a rainbow hug anyway!",
 		"Maybe, ooh, the crystal ball’s twinkling with secrets!",
@@ -37,7 +38,7 @@ local function shakeBall()
 	local ballToon = model:WaitForChild("ballToon")
 	local toonOriginalSize = ballToon.Size
 	for i = 1, 15 do
-		ball.Color = personality.color
+		ball.Color = OTTcolor
 		if particles then particles.Color = ColorSequence.new(personality.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
 		local scale = 1 + math.sin(i * 0.5) * 0.1
@@ -46,15 +47,15 @@ local function shakeBall()
 		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = toonOriginalSize * scale}):Play()
 		wait(0.2 - (i * 0.01))
 	end
-	ball.Color = personality.color
+	ball.Color = OTTcolor
 	if particles then particles.Color = ColorSequence.new(personality.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = ballOriginalSize}):Play()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://16908034492" -- Wild effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 69, 0))
-	celebSound.SoundId = "rbxassetid://18204124897" -- Chaotic laugh
+	celebParticles.Texture = "rbxassetid://1807969880" -- hug emoji effect
+	celebParticles.Color = ColorSequence.new(OTTcolor)
+	celebSound.SoundId = "rbxassetid://743073360" -- yaaaay
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
