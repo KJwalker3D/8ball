@@ -33,8 +33,7 @@ local function shakeBall()
 		ball.Color = personality.color
 		if particles then particles.Color = ColorSequence.new(personality.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
-		local scale = 1 + math.sin(i * 0.5) * 0.1 -- Pulse effect
-		-- Anchor text and toon to ball's CFrame, scale each independently
+		local scale = 1 + math.sin(i * 0.5) * 0.1
 		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = ballOriginalSize * scale}):Play()
 		TweenService:Create(text, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = textOriginalSize * scale}):Play()
 		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = toonOriginalSize * scale}):Play()
@@ -53,6 +52,10 @@ local function shakeBall()
 	celebSound:Play()
 	wait(1)
 	celebParticles.Enabled = false
+	-- Explicit reset after celebration
+	ball.Size = ballOriginalSize
+	text.Size = textOriginalSize
+	ballToon.Size = toonOriginalSize
 	return personality
 end
 
@@ -80,6 +83,6 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
 		local final = shakeBall()
-		shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
+		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
 end)

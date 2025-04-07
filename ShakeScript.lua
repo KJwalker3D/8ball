@@ -127,12 +127,12 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 end)
 
 rerollEvent.OnServerEvent:Connect(function(player, ballModel)
-	if ballModel ~= model then return end -- Only this ball
+	if ballModel ~= model then return end
 	local coins = player:WaitForChild("Coins")
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
 		local final = shakeBall()
-		shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
+		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
 end)
 
