@@ -258,6 +258,7 @@ rerollButton.MouseButton1Click:Connect(function()
 	if currentBall then
 		clickSound:Play()
 		rerollEvent:FireServer(currentBall)
+		currentBall.ShakeSound:Play()
 		shopFrame.Visible = false
 	end
 end)
