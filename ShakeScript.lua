@@ -45,10 +45,10 @@ local function shakeBall()
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:FindFirstChild("CelebrationSound")
 	local originalCFrame = ball.CFrame
-	local text = model:FindFirstChild("Text")
-	local ballToon = model:FindFirstChild("ballToon")
+	local text = model:WaitForChild("Text")
+	local ballToon = model:WaitForChild("ballToon")
 	for i = 1, 15 do
-		local rand = personalities[math.random(1, #personalities)] -- Cycle colors
+		local rand = personalities[math.random(1, #personalities)]
 		ball.Color = rand.color
 		if particles then particles.Color = ColorSequence.new(rand.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
@@ -57,14 +57,13 @@ local function shakeBall()
 		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
 		wait(0.2 - (i * 0.01))
 	end
-	local final = personalities[math.random(1, #personalities)] -- Final personality
+	local final = personalities[math.random(1, #personalities)]
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	ball:SetAttribute("Personality", final.type)
-	-- Celebration matches final personality
 	if final.type == "Angry" then
 		celebParticles.Texture = "rbxassetid://16933997761"
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
@@ -127,7 +126,8 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
 
-rerollEvent.OnServerEvent:Connect(function(player)
+rerollEvent.OnServerEvent:Connect(function(player, ballModel)
+	if ballModel ~= model then return end -- Only this ball
 	local coins = player:WaitForChild("Coins")
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100

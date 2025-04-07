@@ -255,9 +255,9 @@ shopButton.MouseButton1Click:Connect(function()
 end)
 
 rerollButton.MouseButton1Click:Connect(function()
-	if currentBall == workspace.CentralMagic8Ball then
+	if currentBall then -- Allow reroll for any ball
 		clickSound:Play()
-		rerollEvent:FireServer()
+		rerollEvent:FireServer(currentBall) -- Pass the current ball
 		shopFrame.Visible = false
 	end
 end)
@@ -299,12 +299,11 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		responseLabel.Font = data.personality.font
 		coinLabel.Text = "Coins: " .. coins
 		showCoinPopup(5)
-		-- Fade out response frame after 2 seconds
 		wait(2)
 		TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
 		wait(0.5)
 		responseFrame.Visible = false
-		responseFrame.BackgroundTransparency = 0.2 -- Reset for next use
+		responseFrame.BackgroundTransparency = 0.2
 		responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
 	end
 end)

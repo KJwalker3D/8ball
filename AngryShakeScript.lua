@@ -3,6 +3,7 @@ local ball = model:WaitForChild("ball")
 local part = model:WaitForChild("CelebrationParticleEmitter")
 local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
+local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local TweenService = game:GetService("TweenService")
 
 local coinSound = Instance.new("Sound")
@@ -23,22 +24,27 @@ local function shakeBall()
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:FindFirstChild("CelebrationSound")
 	local originalCFrame = ball.CFrame
-	local text = model:FindFirstChild("Text")
-	local ballToon = model:FindFirstChild("ballToon")
+	local ballOriginalSize = ball.Size
+	local text = model:WaitForChild("Text")
+	local textOriginalSize = text.Size
+	local ballToon = model:WaitForChild("ballToon")
+	local toonOriginalSize = ballToon.Size
 	for i = 1, 15 do
 		ball.Color = personality.color
 		if particles then particles.Color = ColorSequence.new(personality.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
-		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
-		TweenService:Create(text, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
-		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
+		local scale = 1 + math.sin(i * 0.5) * 0.1 -- Pulse effect
+		-- Anchor text and toon to ball's CFrame, scale each independently
+		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = ballOriginalSize * scale}):Play()
+		TweenService:Create(text, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = textOriginalSize * scale}):Play()
+		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset, Size = toonOriginalSize * scale}):Play()
 		wait(0.2 - (i * 0.01))
 	end
 	ball.Color = personality.color
 	if particles then particles.Color = ColorSequence.new(personality.color) end
-	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
-	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
-	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
+	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = ballOriginalSize}):Play()
+	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
+	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
 	celebParticles.Texture = "rbxassetid://16933997761"
 	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
@@ -60,10 +66,20 @@ clickDetector.MouseClick:Connect(function(player)
 end)
 
 shakeEvent.OnServerEvent:Connect(function(player, ballModel)
-	if ballModel ~= model then return end -- Only this ball responds
+	if ballModel ~= model then return end
 	local coins = player:WaitForChild("Coins")
 	local final = shakeBall()
 	coins.Value = coins.Value + 5
 	coinSound:Play()
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
+end)
+
+rerollEvent.OnServerEvent:Connect(function(player, ballModel)
+	if ballModel ~= model then return end
+	local coins = player:WaitForChild("Coins")
+	if coins.Value >= 100 then
+		coins.Value = coins.Value - 100
+		local final = shakeBall()
+		shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
+	end
 end)
