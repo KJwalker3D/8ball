@@ -74,6 +74,25 @@ local function bouncePlayer(hit)
 	end)
 end
 
+
+local tweenTime = 5
+local tweenAmountY = 5
+local tweenDelay = 5
+
+-- function to make clouds hover
+local function makeCloudHover(cloud)
+	local originalPosition = cloud.Position
+	while true do
+		-- Move up
+		TweenService:Create(cloud, TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Position = originalPosition + Vector3.new(0, tweenAmountY, 0)}):Play()
+		wait(tweenDelay)
+		-- Move down
+		TweenService:Create(cloud, TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Position = originalPosition}):Play()
+		wait(tweenDelay)
+	end
+end
+makeCloudHover(cloud)
+
 -- Ensure cloud is anchored and non-collidable
 cloud.Anchored = true
 cloud.CanCollide = false
