@@ -21,12 +21,12 @@ particleEmitter.Parent = cloud
 
 -- Debounce table
 local bounceCooldown = {}
-local COOLDOWN_TIME = 0.5 -- Seconds
+local COOLDOWN_TIME = 0.5
 
 -- Hover setup
-local baseCFrame = cloud.CFrame -- Starting position
-local hoverAmplitude = 3 -- Height of hover
-local hoverSpeed = .5 -- Speed of oscillation
+local baseCFrame = cloud.CFrame
+local hoverAmplitude = 3
+local hoverSpeed = 0.5
 
 local function bouncePlayer(hit)
 	local character = hit.Parent
@@ -43,7 +43,7 @@ local function bouncePlayer(hit)
 	end
 	bounceCooldown[player] = os.clock()
 
-	-- Calculate bounce direction from current position
+	-- Calculate bounce direction
 	local bounceDirection = (rootPart.Position - cloud.Position).Unit + Vector3.new(0, 1, 0)
 	local bounceForce = bounceDirection * 50
 
@@ -54,17 +54,25 @@ local function bouncePlayer(hit)
 	bodyVelocity.Parent = rootPart
 
 	-- Sound and particles
+	boingSound.PlaybackSpeed = math.random(8, 12) / 10
 	boingSound:Play()
 	particleEmitter:Emit(20)
 
-	-- Wobble cloud
+	-- Wobble cloud with color flash and texture swap
 	local originalSize = cloud.Size
+	local originalColor = cloud.Color or Color3.fromRGB(239, 209, 248)
+	local originalTexture = cloud.TextureID or "rbxassetid://131570193623799"
+	local newTexture = "" -- Empty texture during bounce
+
+	cloud.Color = Color3.fromRGB(115, 253, 255) -- Bright green flash
+	cloud.TextureID = newTexture -- Swap to empty texture instantly
 	TweenService:Create(cloud, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = originalSize * 1.2}):Play()
 	wait(0.1)
-	TweenService:Create(cloud, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = originalSize}):Play()
+	TweenService:Create(cloud, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = originalSize, Color = originalColor}):Play()
+	wait(0.2) -- Match tween duration
+	cloud.TextureID = originalTexture -- Swap back instantly
 
 	-- Remove bounce
-	wait(0.2)
 	bodyVelocity:Destroy()
 
 	-- Clean up cooldown
