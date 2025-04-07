@@ -10,9 +10,10 @@ local CoinSaver = require(game.ServerScriptService.CoinSaver)
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
+local flirtyColor = Color3.fromRGB(255, 0, 191)
 
 local personality = {
-	color = Color3.fromRGB(255, 69, 0), type = "Flirty", font = Enum.Font.Creepster, responses = {
+	color = flirtyColor, type = "Flirty", font = Enum.Font.JosefinSans, responses = {
 		"Yes… omg, you're so cute.",
 		"No, but come back and ask later, cutie.",
 		"Maybe, but I’d rather talk about you.",
@@ -52,9 +53,9 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://16908034492" -- Wild effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 69, 0))
-	celebSound.SoundId = "rbxassetid://18204124897" -- Chaotic laugh
+	celebParticles.Texture = "rbxassetid://17284973616" -- mwah decal
+	celebParticles.Color = ColorSequence.new(flirtyColor)
+	celebSound.SoundId = "rbxassetid://18219522484" -- mwah
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
