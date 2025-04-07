@@ -85,7 +85,7 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	local coins = player:WaitForChild("Coins")
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
-		CoinSaver.saveCoins(player)
+		CoinSaver.saveData(player)
 		local final = shakeBall()
 		
 		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)

@@ -9,7 +9,6 @@ local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
 
-
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ShakeGui"
 screenGui.Parent = playerGui
@@ -152,8 +151,8 @@ coinPopup.Parent = screenGui
 
 -- Shop Frame
 local shopFrame = Instance.new("Frame")
-shopFrame.Size = UDim2.new(0, 400, 0, 280)
-shopFrame.Position = UDim2.new(0.5, -200, 0.5, -140)
+shopFrame.Size = UDim2.new(0, 480, 0, 360) -- Widened to 480, heightened to 360
+shopFrame.Position = UDim2.new(0.5, -240, 0.5, -180) -- Adjusted to center
 shopFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 shopFrame.BackgroundTransparency = 0.2
 shopFrame.BorderSizePixel = 0
@@ -168,32 +167,14 @@ sGradient.Rotation = 90
 sGradient.Parent = shopFrame
 
 local shopTitle = Instance.new("TextLabel")
-shopTitle.Size = UDim2.new(0, 340, 0, 40)
-shopTitle.Position = UDim2.new(0.5, -170, 0, 20)
+shopTitle.Size = UDim2.new(0, 420, 0, 40) -- Widened with frame
+shopTitle.Position = UDim2.new(0.5, -210, 0, 20)
 shopTitle.BackgroundTransparency = 1
 shopTitle.Text = "Shop"
 shopTitle.TextScaled = true
 shopTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 shopTitle.Font = Enum.Font.SourceSansBold
 shopTitle.Parent = shopFrame
-
--- [Existing code until Shop Frame]
-local vipButton = Instance.new("TextButton")
-vipButton.Size = UDim2.new(0, 140, 0, 60)
-vipButton.Position = UDim2.new(0.5, -70, 0, 240) -- Below coin pack
-vipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-vipButton.Text = "VIP Pass (50R$)"
-vipButton.TextScaled = true
-vipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-vipButton.Font = Enum.Font.SourceSansBold
-vipButton.Parent = shopFrame
-local vipCorner = Instance.new("UICorner")
-vipCorner.CornerRadius = UDim.new(0, 15)
-vipCorner.Parent = vipButton
-local vipGradient = Instance.new("UIGradient")
-vipGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 0))}
-vipGradient.Rotation = 90
-vipGradient.Parent = vipButton
 
 local rerollButton = Instance.new("TextButton")
 rerollButton.Size = UDim2.new(0, 140, 0, 60)
@@ -229,6 +210,23 @@ coinPackGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.f
 coinPackGradient.Rotation = 90
 coinPackGradient.Parent = coinPackButton
 
+local vipButton = Instance.new("TextButton")
+vipButton.Size = UDim2.new(0, 140, 0, 60)
+vipButton.Position = UDim2.new(0.5, -70, 0, 240)
+vipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+vipButton.Text = "VIP Pass (50R$)"
+vipButton.TextScaled = true
+vipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+vipButton.Font = Enum.Font.SourceSansBold
+vipButton.Parent = shopFrame
+local vipCorner = Instance.new("UICorner")
+vipCorner.CornerRadius = UDim.new(0, 15)
+vipCorner.Parent = vipButton
+local vipGradient = Instance.new("UIGradient")
+vipGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 0))}
+vipGradient.Rotation = 90
+vipGradient.Parent = vipButton
+
 local closeShopButton = Instance.new("TextButton")
 closeShopButton.Size = UDim2.new(0, 40, 0, 40)
 closeShopButton.Position = UDim2.new(1, -50, 0, 10)
@@ -256,8 +254,8 @@ addHoverEffect(shopButton)
 addHoverEffect(shakeButton)
 addHoverEffect(rerollButton)
 addHoverEffect(coinPackButton)
-addHoverEffect(closeShopButton)
 addHoverEffect(vipButton)
+addHoverEffect(closeShopButton)
 
 shakeButton.MouseButton1Click:Connect(function()
 	if currentBall then
@@ -284,15 +282,14 @@ rerollButton.MouseButton1Click:Connect(function()
 	end
 end)
 
-vipButton.MouseButton1Click:Connect(function()
-	clickSound:Play()
-	buyVIPEvent:FireServer()
-end)
-
-
 coinPackButton.MouseButton1Click:Connect(function()
 	clickSound:Play()
 	MarketplaceService:PromptProductPurchase(player, COIN_PACK_ID)
+end)
+
+vipButton.MouseButton1Click:Connect(function()
+	clickSound:Play()
+	buyVIPEvent:FireServer()
 end)
 
 closeShopButton.MouseButton1Click:Connect(function()
@@ -301,7 +298,7 @@ closeShopButton.MouseButton1Click:Connect(function()
 end)
 
 local function showCoinPopup(amount)
-	if coinPopup.Visible then wait(0.1) end -- Prevent overlap
+	if coinPopup.Visible then wait(0.1) end
 	coinPopup.Text = amount >= 0 and "+" .. amount or tostring(amount)
 	coinPopup.TextColor3 = amount >= 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 50, 50)
 	coinPopup.Visible = true
@@ -315,7 +312,6 @@ local function showCoinPopup(amount)
 end
 
 local function showResponse(data, coins, coinAmount)
-	-- Reset and pre-set everything while invisible
 	responseFrame.Visible = false
 	responseFrame.BackgroundTransparency = 0.2
 	responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
@@ -323,7 +319,6 @@ local function showResponse(data, coins, coinAmount)
 	responseLabel.TextColor3 = data.personality.color
 	responseLabel.Font = data.personality.font
 	coinLabel.Text = "Coins: " .. coins
-	-- Show and animate
 	questionFrame.Visible = false
 	responseFrame.Visible = true
 	showCoinPopup(coinAmount)
@@ -341,7 +336,7 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		questionFrame.Visible = true
 		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
-		showResponse(data, coins, 5)
+		showResponse(data, coins, player:WaitForChild("VIP").Value and 10 or 5)
 	elseif data.type == "RerollResponse" then
 		showResponse(data, coins, -100)
 	end
