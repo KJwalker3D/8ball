@@ -10,9 +10,10 @@ local CoinSaver = require(game.ServerScriptService.CoinSaver)
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
+local emoColor = Color3.fromRGB(214, 214, 214)
 
 local personality = {
-	color = Color3.fromRGB(255, 69, 0), type = "Emo", font = Enum.Font.Creepster, responses = {
+	color = emoColor, type = "Emo", font = Enum.Font.JosefinSans, responses = {
 		"Yes, but it won’t fix the emptiness inside.",
 		"No, just like everything else in this bleak world.",
 		"Maybe, though the shadows don’t care either way.",
@@ -26,6 +27,8 @@ local personality = {
 	}
 }
 
+
+---change text color to white raindrops to light blue      
 local function shakeBall()
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
@@ -52,9 +55,9 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://16908034492" -- Wild effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 69, 0))
-	celebSound.SoundId = "rbxassetid://18204124897" -- Chaotic laugh
+	celebParticles.Texture = "rbxassetid://5118926745" -- raindrop
+	celebParticles.Color = ColorSequence.new(emoColor)
+	celebSound.SoundId = "rbxassetid://135308045" -- Chaotic laugh
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
