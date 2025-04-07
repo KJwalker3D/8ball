@@ -6,10 +6,14 @@ local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local CoinSaver = require(game.ServerScriptService.CoinSaver)
 
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
+
+local COIN_PACK_ID = 3258288474
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -38,12 +42,10 @@ local personalities = {
 	}}
 }
 
-local COIN_PACK_ID = 3258288474
-
 local function shakeBall()
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
-	local celebSound = model:FindFirstChild("CelebrationSound")
+	local celebSound = model:WaitForChild("CelebrationSound")
 	local originalCFrame = ball.CFrame
 	local text = model:WaitForChild("Text")
 	local ballToon = model:WaitForChild("ballToon")
@@ -88,16 +90,39 @@ local function shakeBall()
 	return final
 end
 
-game.Players.PlayerAdded:Connect(function(player)
+local function loadCoins(player)
+	local success, data
+	for i = 1, 3 do
+		success, data = pcall(function()
+			return game:GetService("DataStoreService"):GetDataStore("PlayerCoinsV1"):GetAsync(player.UserId)
+		end)
+		if success then break end
+		warn("Failed to load coins for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
+		wait(2)
+	end
+	return success and data or 100 -- Default to 100 if load fails or no data
+end
+
+Players.PlayerAdded:Connect(function(player)
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
-	coins.Value = 100
+	coins.Value = loadCoins(player)
 	coins.Parent = player
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
 	lastClaim.Value = os.time()
 	lastClaim.Parent = player
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	CoinSaver.saveCoins(player)
+end)
+
+game:BindToClose(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		CoinSaver.saveCoins(player)
+	end
 end)
 
 local clickBallSound = Instance.new("Sound")
@@ -123,6 +148,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	local final = shakeBall()
 	coins.Value = coins.Value + 5
 	coinSound:Play()
+	CoinSaver.saveCoins(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
 
@@ -132,16 +158,18 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
 		local final = shakeBall()
+		CoinSaver.saveCoins(player)
 		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
 end)
 
 MarketplaceService.ProcessReceipt = function(receiptInfo)
-	local player = game.Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
 	if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
 	if receiptInfo.ProductId == COIN_PACK_ID then
 		local coins = player:WaitForChild("Coins")
 		coins.Value = coins.Value + 100
+		CoinSaver.saveCoins(player)
 		shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end

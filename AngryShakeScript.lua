@@ -5,6 +5,7 @@ local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local TweenService = game:GetService("TweenService")
+local CoinSaver = require(game.ServerScriptService.CoinSaver)
 
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
@@ -73,6 +74,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	local coins = player:WaitForChild("Coins")
 	local final = shakeBall()
 	coins.Value = coins.Value + 5
+	CoinSaver.saveCoins(player)
 	coinSound:Play()
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
@@ -82,6 +84,7 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	local coins = player:WaitForChild("Coins")
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
+		CoinSaver.saveCoins(player)
 		local final = shakeBall()
 		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
