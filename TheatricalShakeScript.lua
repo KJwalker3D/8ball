@@ -10,9 +10,10 @@ local CoinSaver = require(game.ServerScriptService.CoinSaver)
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
+local theatricalColor = Color3.new(0.581888, 0.215686, 1)
 
 local personality = {
-	color = Color3.fromRGB(147, 112, 219), type = "Theatric", font = Enum.Font.SciFi, responses = {
+	color = theatricalColor, type = "Theatric", font = Enum.Font.Merriweather, responses = {
 		"Yea, by mine Troth, the Heavens doth proclaim it so!",
 		"Nay, woe betide thee, a Tragedy most dire!",
 		"Perchance, the Fates do weave their thread in Shadow!",
@@ -52,9 +53,9 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://6700009498" -- Starry effect
-	celebParticles.Color = ColorSequence.new(Color3.fromRGB(147, 112, 219))
-	celebSound.SoundId = "rbxassetid://9116395089" -- Ethereal sound
+	celebParticles.Texture = "rbxassetid://18699497367" -- confetti string effect
+	celebParticles.Color = ColorSequence.new(theatricalColor)
+	celebSound.SoundId = "rbxassetid://6648577112" -- tada sound
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
