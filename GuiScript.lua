@@ -1,5 +1,4 @@
-local COIN_PACK_ID = 3258288474 -- Replace with your Product ID
-
+local COIN_PACK_ID = 3258288474
 
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -9,17 +8,15 @@ local playerGui = player:WaitForChild("PlayerGui")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 
-
--- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ShakeGui"
 screenGui.Parent = playerGui
 
-local clickSound = Instance.new("Sound") -- Add click sound
+local clickSound = Instance.new("Sound")
 clickSound.SoundId = "rbxassetid://9125397583"
 clickSound.Parent = playerGui
 
-local currentBall = nil 
+local currentBall = nil
 
 -- Coin Counter
 local coinFrame = Instance.new("Frame")
@@ -33,7 +30,7 @@ coinCorner.CornerRadius = UDim.new(0, 12)
 coinCorner.Parent = coinFrame
 local coinGradient = Instance.new("UIGradient")
 coinGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
-coinGradient.Rotation = 90 -- Vertical gradient
+coinGradient.Rotation = 90
 coinGradient.Parent = coinFrame
 
 local coinLabel = Instance.new("TextLabel")
@@ -61,7 +58,7 @@ shopCorner.CornerRadius = UDim.new(0, 12)
 shopCorner.Parent = shopButton
 local shopGradient = Instance.new("UIGradient")
 shopGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 200)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 100))}
-shopGradient.Rotation = 90 -- Vertical gradient
+shopGradient.Rotation = 90
 shopGradient.Parent = shopButton
 
 -- Question Frame
@@ -78,7 +75,7 @@ qCorner.CornerRadius = UDim.new(0, 20)
 qCorner.Parent = questionFrame
 local qGradient = Instance.new("UIGradient")
 qGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
-qGradient.Rotation = 90 -- Vertical gradient
+qGradient.Rotation = 90
 qGradient.Parent = questionFrame
 
 local questionBox = Instance.new("TextBox")
@@ -109,7 +106,7 @@ shakeCorner.CornerRadius = UDim.new(0, 15)
 shakeCorner.Parent = shakeButton
 local shakeGradient = Instance.new("UIGradient")
 shakeGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 0, 200)), ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 0, 100))}
-shakeGradient.Rotation = 90 -- Vertical gradient
+shakeGradient.Rotation = 90
 shakeGradient.Parent = shakeButton
 
 -- Response Frame
@@ -126,7 +123,7 @@ rCorner.CornerRadius = UDim.new(0, 20)
 rCorner.Parent = responseFrame
 local rGradient = Instance.new("UIGradient")
 rGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
-rGradient.Rotation = 90 -- Vertical gradient
+rGradient.Rotation = 90
 rGradient.Parent = responseFrame
 
 local responseLabel = Instance.new("TextLabel")
@@ -165,7 +162,7 @@ sCorner.CornerRadius = UDim.new(0, 20)
 sCorner.Parent = shopFrame
 local sGradient = Instance.new("UIGradient")
 sGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
-sGradient.Rotation = 90 -- Vertical gradient
+sGradient.Rotation = 90
 sGradient.Parent = shopFrame
 
 local shopTitle = Instance.new("TextLabel")
@@ -192,7 +189,7 @@ rerollCorner.CornerRadius = UDim.new(0, 15)
 rerollCorner.Parent = rerollButton
 local rerollGradient = Instance.new("UIGradient")
 rerollGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 100, 0))}
-rerollGradient.Rotation = 90 -- Vertical gradient
+rerollGradient.Rotation = 90
 rerollGradient.Parent = rerollButton
 
 local coinPackButton = Instance.new("TextButton")
@@ -209,7 +206,7 @@ coinPackCorner.CornerRadius = UDim.new(0, 15)
 coinPackCorner.Parent = coinPackButton
 local coinPackGradient = Instance.new("UIGradient")
 coinPackGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 200))}
-coinPackGradient.Rotation = 90 -- Vertical gradient
+coinPackGradient.Rotation = 90
 coinPackGradient.Parent = coinPackButton
 
 local closeShopButton = Instance.new("TextButton")
@@ -225,12 +222,6 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 12)
 closeCorner.Parent = closeShopButton
 
--- Sound
-local shakeSound = Instance.new("Sound")
-shakeSound.SoundId = "rbxassetid://18769017543" -- Spray can rattle sound by NayMecou
-shakeSound.Parent = game.Workspace.CentralMagic8Ball
-
--- Button Hover Effects
 local function addHoverEffect(button)
 	local originalSize = button.Size
 	button.MouseEnter:Connect(function()
@@ -247,33 +238,22 @@ addHoverEffect(rerollButton)
 addHoverEffect(coinPackButton)
 addHoverEffect(closeShopButton)
 
--- Handle 8 Ball click
-local ball = game.Workspace:WaitForChild("CentralMagic8Ball")
-local clickDetector = ball:WaitForChild("ClickDetector")
-
-clickDetector.MouseClick:Connect(function()
-	-- Handled by server
-end)
-
--- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
 	if currentBall then
 		clickSound:Play()
 		questionFrame.Visible = false
-		shakeSound:Play()
-		shakeEvent:FireServer()
+		currentBall.ShakeSound:Play()
+		shakeEvent:FireServer(currentBall)
 	end
 end)
 
--- Handle shop button
 shopButton.MouseButton1Click:Connect(function()
-	clickSound:Play() -- Play on click
+	clickSound:Play()
 	shopFrame.Visible = true
 	questionFrame.Visible = false
 	responseFrame.Visible = false
 end)
 
--- Handle reroll
 rerollButton.MouseButton1Click:Connect(function()
 	if currentBall == workspace.CentralMagic8Ball then
 		clickSound:Play()
@@ -282,19 +262,16 @@ rerollButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Handle coin pack
 coinPackButton.MouseButton1Click:Connect(function()
-	clickSound:Play() -- Play on click
+	clickSound:Play()
 	MarketplaceService:PromptProductPurchase(player, COIN_PACK_ID)
 end)
 
--- Handle close shop
 closeShopButton.MouseButton1Click:Connect(function()
-	clickSound:Play() -- Play on click
+	clickSound:Play()
 	shopFrame.Visible = false
 end)
 
--- Coin Popup Animation
 local function showCoinPopup(amount)
 	coinPopup.Text = "+" .. amount
 	coinPopup.Visible = true
@@ -307,7 +284,6 @@ local function showCoinPopup(amount)
 	end)
 end
 
--- Update coins and response from server
 shakeEvent.OnClientEvent:Connect(function(data, coins)
 	if data.type == "Init" then
 		coinLabel.Text = "Coins: " .. coins
@@ -317,9 +293,18 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
 		questionFrame.Visible = false
-		answerLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
-		answerLabel.TextColor3 = data.personality.color
-		answerLabel.Font = data.personality.font
+		responseFrame.Visible = true
+		responseLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
+		responseLabel.TextColor3 = data.personality.color
+		responseLabel.Font = data.personality.font
 		coinLabel.Text = "Coins: " .. coins
+		showCoinPopup(5)
+		-- Fade out response frame after 2 seconds
+		wait(2)
+		TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
+		wait(0.5)
+		responseFrame.Visible = false
+		responseFrame.BackgroundTransparency = 0.2 -- Reset for next use
+		responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
 	end
 end)

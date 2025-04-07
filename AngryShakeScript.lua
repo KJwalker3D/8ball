@@ -5,6 +5,10 @@ local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local TweenService = game:GetService("TweenService")
 
+local coinSound = Instance.new("Sound")
+coinSound.SoundId = "rbxassetid://607665037"
+coinSound.Parent = model
+
 local personality = {
 	color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
 		"YES, YOU FOOL!", "NO, STOP WASTING MY TIME!", "MAYBE, IF YOU SHUT UP!",
@@ -36,7 +40,6 @@ local function shakeBall()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	-- Celebration
 	celebParticles.Texture = "rbxassetid://16933997761"
 	celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
 	celebSound.SoundId = "rbxassetid://186669531"
@@ -56,9 +59,11 @@ clickDetector.MouseClick:Connect(function(player)
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
 
-shakeEvent.OnServerEvent:Connect(function(player)
+shakeEvent.OnServerEvent:Connect(function(player, ballModel)
+	if ballModel ~= model then return end -- Only this ball responds
 	local coins = player:WaitForChild("Coins")
 	local final = shakeBall()
 	coins.Value = coins.Value + 5
+	coinSound:Play()
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)

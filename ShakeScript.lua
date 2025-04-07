@@ -48,7 +48,7 @@ local function shakeBall()
 	local text = model:FindFirstChild("Text")
 	local ballToon = model:FindFirstChild("ballToon")
 	for i = 1, 15 do
-		local rand = personalities[math.random(1, #personalities)]
+		local rand = personalities[math.random(1, #personalities)] -- Cycle colors
 		ball.Color = rand.color
 		if particles then particles.Color = ColorSequence.new(rand.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
@@ -57,14 +57,14 @@ local function shakeBall()
 		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
 		wait(0.2 - (i * 0.01))
 	end
-	local final = personalities[math.random(1, #personalities)]
+	local final = personalities[math.random(1, #personalities)] -- Final personality
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	ball:SetAttribute("Personality", final.type)
-	-- Celebration
+	-- Celebration matches final personality
 	if final.type == "Angry" then
 		celebParticles.Texture = "rbxassetid://16933997761"
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
@@ -110,7 +110,8 @@ clickDetector.MouseClick:Connect(function(player)
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
 
-shakeEvent.OnServerEvent:Connect(function(player)
+shakeEvent.OnServerEvent:Connect(function(player, ballModel)
+	if ballModel ~= model then return end
 	local coins = player:WaitForChild("Coins")
 	local lastClaim = player:WaitForChild("LastClaim")
 	local currentTime = os.time()
