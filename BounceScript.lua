@@ -1,10 +1,6 @@
-
-
-
---------------
-
 local cloud = script.Parent:WaitForChild("CloudPart")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 -- Sound
 local boingSound = Instance.new("Sound")
@@ -27,14 +23,19 @@ particleEmitter.Parent = cloud
 local bounceCooldown = {}
 local COOLDOWN_TIME = 0.5 -- Seconds
 
+-- Hover setup
+local baseCFrame = cloud.CFrame -- Starting position
+local hoverAmplitude = 3 -- Height of hover
+local hoverSpeed = .5 -- Speed of oscillation
+
 local function bouncePlayer(hit)
 	local character = hit.Parent
 	local humanoid = character:FindFirstChild("Humanoid")
 	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not rootPart then return end -- Not a player or incomplete character
+	if not humanoid or not rootPart then return end
 
 	local player = game.Players:GetPlayerFromCharacter(character)
-	if not player then return end -- Not a player (e.g., NPC)
+	if not player then return end
 
 	-- Check cooldown
 	if bounceCooldown[player] and os.clock() - bounceCooldown[player] < COOLDOWN_TIME then
@@ -42,9 +43,9 @@ local function bouncePlayer(hit)
 	end
 	bounceCooldown[player] = os.clock()
 
-	-- Calculate bounce direction
+	-- Calculate bounce direction from current position
 	local bounceDirection = (rootPart.Position - cloud.Position).Unit + Vector3.new(0, 1, 0)
-	local bounceForce = bounceDirection * 100
+	local bounceForce = bounceDirection * 50
 
 	-- Apply bounce
 	local bodyVelocity = Instance.new("BodyVelocity")
@@ -66,7 +67,7 @@ local function bouncePlayer(hit)
 	wait(0.2)
 	bodyVelocity:Destroy()
 
-	-- Clean up cooldown when player leaves
+	-- Clean up cooldown
 	game.Players.PlayerRemoving:Connect(function(leavingPlayer)
 		if leavingPlayer == player then
 			bounceCooldown[player] = nil
@@ -74,27 +75,20 @@ local function bouncePlayer(hit)
 	end)
 end
 
-
-local tweenTime = 5
-local tweenAmountY = 5
-local tweenDelay = 5
-
--- function to make clouds hover
-local function makeCloudHover(cloud)
-	local originalPosition = cloud.Position
-	while true do
-		-- Move up
-		TweenService:Create(cloud, TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Position = originalPosition + Vector3.new(0, tweenAmountY, 0)}):Play()
-		wait(tweenDelay)
-		-- Move down
-		TweenService:Create(cloud, TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Position = originalPosition}):Play()
-		wait(tweenDelay)
-	end
-end
-makeCloudHover(cloud)
-
--- Ensure cloud is anchored and non-collidable
+-- Lock cloud properties
 cloud.Anchored = true
 cloud.CanCollide = false
+for _, part in pairs(script.Parent:GetDescendants()) do
+	if part:IsA("BasePart") then
+		part.Anchored = true
+		part.CanCollide = false
+	end
+end
+
+-- Hover animation
+RunService.Heartbeat:Connect(function()
+	local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
+	cloud.CFrame = baseCFrame + hoverOffset
+end)
 
 cloud.Touched:Connect(bouncePlayer)
