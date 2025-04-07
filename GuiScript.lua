@@ -19,6 +19,8 @@ local clickSound = Instance.new("Sound") -- Add click sound
 clickSound.SoundId = "rbxassetid://9125397583"
 clickSound.Parent = playerGui
 
+local currentBall = nil 
+
 -- Coin Counter
 local coinFrame = Instance.new("Frame")
 coinFrame.Size = UDim2.new(0, 140, 0, 50)
@@ -226,7 +228,7 @@ closeCorner.Parent = closeShopButton
 -- Sound
 local shakeSound = Instance.new("Sound")
 shakeSound.SoundId = "rbxassetid://18769017543" -- Spray can rattle sound by NayMecou
-shakeSound.Parent = game.Workspace.Magic8Ball
+shakeSound.Parent = game.Workspace.CentralMagic8Ball
 
 -- Button Hover Effects
 local function addHoverEffect(button)
@@ -246,7 +248,7 @@ addHoverEffect(coinPackButton)
 addHoverEffect(closeShopButton)
 
 -- Handle 8 Ball click
-local ball = game.Workspace:WaitForChild("Magic8Ball")
+local ball = game.Workspace:WaitForChild("CentralMagic8Ball")
 local clickDetector = ball:WaitForChild("ClickDetector")
 
 clickDetector.MouseClick:Connect(function()
@@ -255,10 +257,12 @@ end)
 
 -- Handle shake button
 shakeButton.MouseButton1Click:Connect(function()
-	clickSound:Play() -- Play on click
-	questionFrame.Visible = false
-	shakeSound:Play()
-	shakeEvent:FireServer()
+	if currentBall then
+		clickSound:Play()
+		questionFrame.Visible = false
+		shakeSound:Play()
+		shakeEvent:FireServer()
+	end
 end)
 
 -- Handle shop button
@@ -271,9 +275,11 @@ end)
 
 -- Handle reroll
 rerollButton.MouseButton1Click:Connect(function()
-	clickSound:Play() -- Play on click
-	rerollEvent:FireServer()
-	shopFrame.Visible = false
+	if currentBall == workspace.CentralMagic8Ball then
+		clickSound:Play()
+		rerollEvent:FireServer()
+		shopFrame.Visible = false
+	end
 end)
 
 -- Handle coin pack
@@ -302,17 +308,18 @@ local function showCoinPopup(amount)
 end
 
 -- Update coins and response from server
-shakeEvent.OnClientEvent:Connect(function(final, coinValue)
-	coinLabel.Text = "Coins: " .. coinValue
-	if final.type == "ShowQuestion" then
+shakeEvent.OnClientEvent:Connect(function(data, coins)
+	if data.type == "Init" then
+		coinLabel.Text = "Coins: " .. coins
+	elseif data.type == "ShowQuestion" then
+		currentBall = data.ball
 		questionFrame.Visible = true
-		responseFrame.Visible = false
-		shopFrame.Visible = false
-	elseif final.type ~= "Init" then
-		responseLabel.Text = final.responses[math.random(1, #final.responses)]
-		responseLabel.TextColor3 = final.color
-		responseLabel.Font = final.font
-		responseFrame.Visible = true
-		showCoinPopup(5)
+		coinLabel.Text = "Coins: " .. coins
+	elseif data.type == "Response" then
+		questionFrame.Visible = false
+		answerLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
+		answerLabel.TextColor3 = data.personality.color
+		answerLabel.Font = data.personality.font
+		coinLabel.Text = "Coins: " .. coins
 	end
 end)
