@@ -1,7 +1,6 @@
--- module script in server script service 
-
 local DataStoreService = game:GetService("DataStoreService")
-local dataStore = DataStoreService:GetDataStore("PlayerDataV1") -- Updated key
+local dataStore = DataStoreService:GetDataStore("PlayerDataV1")
+local oldCoinStore = DataStoreService:GetDataStore("PlayerCoinsV1") -- For migration
 
 local CoinSaver = {}
 
@@ -34,7 +33,25 @@ function CoinSaver.loadData(player)
 		warn("Failed to load data for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
 		wait(2)
 	end
-	return success and data or {Coins = 100, VIP = false} -- Default: 100 coins, non-VIP
+	if success and data ~= nil then
+		return data
+	else
+		-- Check old store for migration
+		local oldSuccess, oldData
+		for i = 1, 3 do
+			oldSuccess, oldData = pcall(function()
+				return oldCoinStore:GetAsync(player.UserId)
+			end)
+			if oldSuccess then break end
+			wait(2)
+		end
+		if oldSuccess and oldData ~= nil then
+			local migratedData = {Coins = oldData, VIP = false}
+			CoinSaver.saveData(player) -- Save to new store immediately
+			return migratedData
+		end
+		return {Coins = 100, VIP = false} -- Default for new players
+	end
 end
 
 return CoinSaver
