@@ -48,7 +48,7 @@ coinLabel.Parent = coinFrame
 local shopButton = Instance.new("TextButton")
 shopButton.Size = UDim2.new(0, 100, 0, 50)
 shopButton.Position = UDim2.new(0, 160, 0, 10)
-shopButton.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
+shopButton.BackgroundColor3 = Color3.fromRGB(100, 80, 120) -- Muted purple
 shopButton.Text = "Shop"
 shopButton.TextScaled = true
 shopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -58,7 +58,7 @@ local shopCorner = Instance.new("UICorner")
 shopCorner.CornerRadius = UDim.new(0, 12)
 shopCorner.Parent = shopButton
 local shopGradient = Instance.new("UIGradient")
-shopGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 200)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 100))}
+shopGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 100, 140)), ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 60, 100))} -- Purple gradient
 shopGradient.Rotation = 90
 shopGradient.Parent = shopButton
 
@@ -137,22 +137,62 @@ responseLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 responseLabel.Font = Enum.Font.SourceSansBold
 responseLabel.Parent = responseFrame
 
--- Coin Gain Popup
+-- Coin Popup Frame
+local coinPopupFrame = Instance.new("Frame")
+coinPopupFrame.Size = UDim2.new(0, 100, 0, 30)
+coinPopupFrame.Position = UDim2.new(0, 150, 0, 60)
+coinPopupFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+coinPopupFrame.BackgroundTransparency = 0.2
+coinPopupFrame.Visible = false
+coinPopupFrame.Parent = screenGui
+local coinPopupCorner = Instance.new("UICorner")
+coinPopupCorner.CornerRadius = UDim.new(0, 8)
+coinPopupCorner.Parent = coinPopupFrame
+local coinPopupGradient = Instance.new("UIGradient")
+coinPopupGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
+coinPopupGradient.Rotation = 90
+coinPopupGradient.Parent = coinPopupFrame
+
 local coinPopup = Instance.new("TextLabel")
-coinPopup.Size = UDim2.new(0, 100, 0, 30)
-coinPopup.Position = UDim2.new(0, 150, 0, 60)
+coinPopup.Size = UDim2.new(1, -10, 1, 0)
+coinPopup.Position = UDim2.new(0, 5, 0, 0)
 coinPopup.BackgroundTransparency = 1
 coinPopup.Text = "+5"
 coinPopup.TextScaled = true
 coinPopup.TextColor3 = Color3.fromRGB(255, 215, 0)
 coinPopup.Font = Enum.Font.SourceSansBold
-coinPopup.Visible = false
-coinPopup.Parent = screenGui
+coinPopup.Parent = coinPopupFrame
+
+-- Reroll Feedback Frame
+local rerollFeedbackFrame = Instance.new("Frame")
+rerollFeedbackFrame.Size = UDim2.new(0, 200, 0, 40)
+rerollFeedbackFrame.Position = UDim2.new(0.5, -100, 0, 50)
+rerollFeedbackFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+rerollFeedbackFrame.BackgroundTransparency = 0.2
+rerollFeedbackFrame.Visible = false
+rerollFeedbackFrame.Parent = screenGui
+local rerollFeedbackCorner = Instance.new("UICorner")
+rerollFeedbackCorner.CornerRadius = UDim.new(0, 10)
+rerollFeedbackCorner.Parent = rerollFeedbackFrame
+local rerollFeedbackGradient = Instance.new("UIGradient")
+rerollFeedbackGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
+rerollFeedbackGradient.Rotation = 90
+rerollFeedbackGradient.Parent = rerollFeedbackFrame
+
+local rerollFeedback = Instance.new("TextLabel")
+rerollFeedback.Size = UDim2.new(1, -10, 1, 0)
+rerollFeedback.Position = UDim2.new(0, 5, 0, 0)
+rerollFeedback.BackgroundTransparency = 1
+rerollFeedback.Text = ""
+rerollFeedback.TextScaled = true
+rerollFeedback.TextColor3 = Color3.fromRGB(255, 100, 100) -- Softer red
+rerollFeedback.Font = Enum.Font.SourceSansBold
+rerollFeedback.Parent = rerollFeedbackFrame
 
 -- Shop Frame
 local shopFrame = Instance.new("Frame")
-shopFrame.Size = UDim2.new(0, 480, 0, 360) -- Widened to 480, heightened to 360
-shopFrame.Position = UDim2.new(0.5, -240, 0.5, -180) -- Adjusted to center
+shopFrame.Size = UDim2.new(0, 480, 0, 360)
+shopFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
 shopFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 shopFrame.BackgroundTransparency = 0.2
 shopFrame.BorderSizePixel = 0
@@ -167,7 +207,7 @@ sGradient.Rotation = 90
 sGradient.Parent = shopFrame
 
 local shopTitle = Instance.new("TextLabel")
-shopTitle.Size = UDim2.new(0, 420, 0, 40) -- Widened with frame
+shopTitle.Size = UDim2.new(0, 420, 0, 40)
 shopTitle.Position = UDim2.new(0.5, -210, 0, 20)
 shopTitle.BackgroundTransparency = 1
 shopTitle.Text = "Shop"
@@ -273,13 +313,33 @@ shopButton.MouseButton1Click:Connect(function()
 	responseFrame.Visible = false
 end)
 
+local function showRerollFeedback(message)
+	if rerollFeedbackFrame.Visible then wait(0.1) end
+	rerollFeedback.Text = message
+	rerollFeedbackFrame.Visible = true
+	local tween = TweenService:Create(rerollFeedbackFrame, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 0, 30), Transparency = 1})
+	tween:Play()
+	tween.Completed:Connect(function()
+		rerollFeedbackFrame.Visible = false
+		rerollFeedbackFrame.Transparency = 0
+		rerollFeedbackFrame.Position = UDim2.new(0.5, -100, 0, 50)
+	end)
+end
+
 rerollButton.MouseButton1Click:Connect(function()
-	if currentBall then
-		clickSound:Play()
-		rerollEvent:FireServer(currentBall)
-		currentBall.ShakeSound:Play()
-		shopFrame.Visible = false
+	clickSound:Play()
+	if not currentBall then
+		showRerollFeedback("Click a ball first!")
+		return
 	end
+	local coins = player:WaitForChild("Coins").Value
+	if coins < 100 then
+		showRerollFeedback("Need 100 coins!")
+		return
+	end
+	rerollEvent:FireServer(currentBall)
+	currentBall.ShakeSound:Play()
+	shopFrame.Visible = false
 end)
 
 coinPackButton.MouseButton1Click:Connect(function()
@@ -298,16 +358,16 @@ closeShopButton.MouseButton1Click:Connect(function()
 end)
 
 local function showCoinPopup(amount)
-	if coinPopup.Visible then wait(0.1) end
+	if coinPopupFrame.Visible then wait(0.1) end
 	coinPopup.Text = amount >= 0 and "+" .. amount or tostring(amount)
-	coinPopup.TextColor3 = amount >= 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 50, 50)
-	coinPopup.Visible = true
-	local tween = TweenService:Create(coinPopup, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 150, 0, 30), Transparency = 1})
+	coinPopup.TextColor3 = amount >= 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 100, 100) -- Gold for gain, soft red for loss
+	coinPopupFrame.Visible = true
+	local tween = TweenService:Create(coinPopupFrame, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 150, 0, 30), Transparency = 1})
 	tween:Play()
 	tween.Completed:Connect(function()
-		coinPopup.Visible = false
-		coinPopup.Transparency = 0
-		coinPopup.Position = UDim2.new(0, 150, 0, 60)
+		coinPopupFrame.Visible = false
+		coinPopupFrame.Transparency = 0
+		coinPopupFrame.Position = UDim2.new(0, 150, 0, 60)
 	end)
 end
 
