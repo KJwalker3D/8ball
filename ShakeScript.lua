@@ -1,6 +1,6 @@
 local model = script.Parent
 local ball = model:WaitForChild("ball")
-local part = model:WaitForChild("Part")
+local part = model:WaitForChild("CelebrationParticleEmitter")
 local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
