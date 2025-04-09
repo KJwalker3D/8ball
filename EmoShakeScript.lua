@@ -5,12 +5,13 @@ local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local CoinSaver = require(game.ServerScriptService.CoinSaver)
 
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
-local emoColor = Color3.fromRGB(214, 214, 214)
+local emoColor = Color3.fromRGB(116, 134, 157)
 
 local personality = {
 	color = emoColor, type = "Emo", font = Enum.Font.JosefinSans, responses = {
@@ -27,9 +28,10 @@ local personality = {
 	}
 }
 
+local isShaking = false -- Flag to pause hover/spin during shake
 
----change text color to white raindrops to light blue      
 local function shakeBall()
+	isShaking = true
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:WaitForChild("CelebrationSound")
@@ -52,12 +54,12 @@ local function shakeBall()
 	ball.Color = personality.color
 	if particles then particles.Color = ColorSequence.new(personality.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = ballOriginalSize}):Play()
-	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play()
+	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = textOriginalSize}):Play() -- White text
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame, Size = toonOriginalSize}):Play()
 	ball:SetAttribute("Personality", personality.type)
-	celebParticles.Texture = "rbxassetid://5118926745" -- raindrop
-	celebParticles.Color = ColorSequence.new(emoColor)
-	celebSound.SoundId = "rbxassetid://135308045" -- Chaotic laugh
+	celebParticles.Texture = "rbxassetid://5118926745" -- Raindrop
+	celebParticles.Color = ColorSequence.new(Color3.fromRGB(173, 216, 230)) -- Light blue
+	celebSound.SoundId = "rbxassetid://135308045"
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
@@ -65,8 +67,28 @@ local function shakeBall()
 	ball.Size = ballOriginalSize
 	text.Size = textOriginalSize
 	ballToon.Size = toonOriginalSize
+	isShaking = false
 	return personality
 end
+
+-- Hover and Spin Setup
+local baseCFrame = ball.CFrame -- Anchor point for hover/spin
+local hoverAmplitude = 1.5 -- 1.5 studs hover
+local hoverSpeed = 0.3 -- Slower, melancholic hover
+local spinSpeed = 48 -- Faster, restless spin (~7.5s rotation)
+
+RunService.Heartbeat:Connect(function(dt)
+	if not isShaking then
+		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
+		local spinAngle = os.clock() * spinSpeed
+		local text = model:WaitForChild("Text")
+		local ballToon = model:WaitForChild("ballToon")
+		-- Apply hover and spin to all parts
+		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		text.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+	end
+end)
 
 local clickBallSound = Instance.new("Sound")
 clickBallSound.SoundId = "rbxassetid://9125397583"
