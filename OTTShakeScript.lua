@@ -5,6 +5,7 @@ local clickDetector = model:WaitForChild("ClickDetector")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local CoinSaver = require(game.ServerScriptService.CoinSaver)
 
 local coinSound = Instance.new("Sound")
@@ -18,7 +19,7 @@ local personality = {
 		"No, but here’s a rainbow hug anyway!",
 		"Maybe, ooh, the crystal ball’s twinkling with secrets!",
 		"Yes, yes, yes—woohoo!",
-		"No, don’t crylet’s chase butterflies instead!",
+		"No, don’t cry—let’s chase butterflies instead!",
 		"Maybe yes, maybe no—it’s a total rainbow rollercoaster!",
 		"Yes, 100% unicorn power!",
 		"No, aw bummer, but you’re still super-duper!",
@@ -27,7 +28,10 @@ local personality = {
 	}
 }
 
+local isShaking = false -- Flag to pause hover/spin during shake
+
 local function shakeBall()
+	isShaking = true
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:WaitForChild("CelebrationSound")
@@ -63,8 +67,28 @@ local function shakeBall()
 	ball.Size = ballOriginalSize
 	text.Size = textOriginalSize
 	ballToon.Size = toonOriginalSize
+	isShaking = false
 	return personality
 end
+
+-- Hover and Spin Setup
+local baseCFrame = ball.CFrame -- Anchor point for hover/spin
+local hoverAmplitude = 1.5 -- 1.5 studs hover
+local hoverSpeed = 0.7 -- Fast, bouncy hover
+local spinSpeed = 45 -- Quick, energetic spin (~8s rotation)
+
+RunService.Heartbeat:Connect(function(dt)
+	if not isShaking then
+		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
+		local spinAngle = os.clock() * spinSpeed
+		local text = model:WaitForChild("Text")
+		local ballToon = model:WaitForChild("ballToon")
+		-- Apply hover and spin to all parts
+		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		text.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+	end
+end)
 
 local clickBallSound = Instance.new("Sound")
 clickBallSound.SoundId = "rbxassetid://9125397583"
