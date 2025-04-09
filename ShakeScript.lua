@@ -160,6 +160,60 @@ local clickBallSound = Instance.new("Sound")
 clickBallSound.SoundId = "rbxassetid://9125397583"
 clickBallSound.Parent = ball
 
+-- Daily Bonus Visuals with Text
+local function showDailyBonus(player)
+	-- Coin Particles
+	local bonusParticles = Instance.new("ParticleEmitter")
+	bonusParticles.Texture = "rbxassetid://438224846" -- Coin pile texture
+	bonusParticles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0)) -- Gold
+	bonusParticles.Rate = 50 -- High burst rate
+	bonusParticles.Lifetime = NumberRange.new(0.5, 1) -- Short lifetime
+	bonusParticles.Speed = NumberRange.new(5, 10) -- Moderate spread
+	bonusParticles.SpreadAngle = Vector2.new(360, 360) -- Full circle emission
+	bonusParticles.Parent = ball
+	bonusParticles.Enabled = true
+
+	-- Bonus Sound
+	local bonusSound = Instance.new("Sound")
+	bonusSound.SoundId = "rbxassetid://3020841054" -- Cha-ching sound
+	bonusSound.Parent = ball
+	bonusSound:Play()
+
+	-- Bonus Text
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "DailyBonusGui"
+	billboard.Size = UDim2.new(0, 50, 0, 25) -- Studs size
+	billboard.StudsOffset = Vector3.new(0, 3, 0) -- 3 studs above ball
+	billboard.AlwaysOnTop = true
+	billboard.Parent = ball
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(2, 0, 2, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = "Daily Bonus: +100 Coins!"
+	textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+	textLabel.TextStrokeTransparency = 0 -- Black outline for readability
+	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.TextScaled = true
+	textLabel.Parent = billboard
+
+	-- Fade out effect
+	wait(1.5) -- Show for 1.5s
+	local tween = TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1})
+	tween:Play()
+
+	-- Cleanup after 2 seconds total
+	wait(0.5)
+	bonusParticles.Enabled = false
+	bonusParticles:Destroy()
+	bonusSound:Destroy()
+	billboard:Destroy()
+end
+
+-- Debug Toggle for Testing
+local forceDailyBonus = false -- Set to true for testing, false for normal
+
 clickDetector.MouseClick:Connect(function(player)
 	clickBallSound:Play()
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
@@ -172,10 +226,12 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	local lastClaim = player:WaitForChild("LastClaim")
 	local currentTime = os.time()
 	local dayInSeconds = 24 * 60 * 60
-	if currentTime - lastClaim.Value >= dayInSeconds then
+	if forceDailyBonus or (currentTime - lastClaim.Value >= dayInSeconds) then
 		coins.Value = coins.Value + 100
 		lastClaim.Value = currentTime
 		coinSound:Play()
+		showDailyBonus(player) -- Trigger visual feedback with text
+		print("Daily Bonus Triggered for " .. player.Name) -- Debug confirmation
 	end
 	local final = shakeBall()
 	coins.Value = coins.Value + (vip.Value and 10 or 5)
