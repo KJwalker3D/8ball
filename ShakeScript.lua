@@ -7,9 +7,9 @@ local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local CoinSaver = require(game.ServerScriptService.CoinSaver)
 local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
-
 
 local coinSound = Instance.new("Sound")
 coinSound.SoundId = "rbxassetid://607665037"
@@ -45,7 +45,10 @@ local personalities = {
 	}}
 }
 
+local isShaking = false -- Flag to pause hover/spin during shake
+
 local function shakeBall()
+	isShaking = true
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:WaitForChild("CelebrationSound")
@@ -90,8 +93,28 @@ local function shakeBall()
 	celebSound:Play()
 	wait(1)
 	celebParticles.Enabled = false
+	isShaking = false
 	return final
 end
+
+-- Hover and Spin Setup
+local baseCFrame = ball.CFrame -- Anchor point for hover/spin
+local hoverAmplitude = 1.5 -- Height of hover
+local hoverSpeed = 0.5 -- Slow hover oscillation
+local spinSpeed = 36 -- Degrees per second (360° over 10s)
+
+RunService.Heartbeat:Connect(function(dt)
+	if not isShaking then
+		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
+		local spinAngle = os.clock() * spinSpeed -- Continuous rotation
+		local text = model:WaitForChild("Text")
+		local ballToon = model:WaitForChild("ballToon")
+		-- Apply hover and spin to all parts
+		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		text.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+	end
+end)
 
 local function loadCoins(player)
 	local success, data
@@ -103,7 +126,7 @@ local function loadCoins(player)
 		warn("Failed to load coins for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
 		wait(2)
 	end
-	return success and data or 100 -- Default to 100 if load fails or no data
+	return success and data or 100
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -155,7 +178,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 		coinSound:Play()
 	end
 	local final = shakeBall()
-	coins.Value = coins.Value + (vip.Value and 10 or 5) -- VIP gets +10
+	coins.Value = coins.Value + (vip.Value and 10 or 5)
 	coinSound:Play()
 	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
