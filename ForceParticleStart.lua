@@ -2,11 +2,11 @@
 wait(1)
 -- this needs to run after PreloadAssets
 
+-- This emits a bunch of particles right away 
+
 local emitters = {
-	workspace.Magic8Ball.ball.ParticleEmitterBallSparkles,
-	workspace.Magic8Ball.ball.ParticleEmitterQuestionMarks,
-	workspace.Platform.Platform.ParticleEmitterStars,
-	workspace.Platform.Platform.ParticleEmitterWisps,
+	workspace.CentralMagic8Ball.ball.ParticleEmitterBallSparkles,
+	workspace.CentralMagic8Ball.ball.ParticleEmitterQuestionMarks,
 	workspace.FieldParticles.ParticleEmitterFieldWisps -- Adjust name/path if different
 }
 for _, emitter in pairs(emitters) do
