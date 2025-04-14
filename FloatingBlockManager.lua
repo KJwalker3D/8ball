@@ -2,7 +2,7 @@ local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 
-print("FloatingBlockManager started") -- Debug
+print("FloatingBlockManager started")
 
 -- Configuration
 local SINK_DISTANCE = 0.5
@@ -15,8 +15,9 @@ local PARTICLE_COUNT = 10
 
 -- Track state
 local originalPositions = {}
-local touchCounts = {}
-local lastTouchTimes = {}
+local isSunk = {} -- True if block is sunk
+local touchingPlayers = {} -- Players touching each block
+local lastTouchTimes = {} -- Cooldown per player
 local bobbingTweens = {}
 
 -- Animate block
@@ -77,7 +78,7 @@ local function onTouched(blockModel, hit)
 	local character = hit.Parent
 	local player = Players:GetPlayerFromCharacter(character)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if player and humanoid then
+	if player and humanoid and not isSunk[blockModel] then
 		local now = tick()
 		local playerLastTouch = lastTouchTimes[player] and lastTouchTimes[player][blockModel] or 0
 		if now - playerLastTouch < COOLDOWN_TIME then return end
@@ -85,9 +86,12 @@ local function onTouched(blockModel, hit)
 		lastTouchTimes[player] = lastTouchTimes[player] or {}
 		lastTouchTimes[player][blockModel] = now
 
-		touchCounts[blockModel] = (touchCounts[blockModel] or 0) + 1
-		if touchCounts[blockModel] == 1 then
-			print("First touch on", blockModel.Name, "by", player.Name)
+		touchingPlayers[blockModel] = touchingPlayers[blockModel] or {}
+		touchingPlayers[blockModel][player] = (touchingPlayers[blockModel][player] or 0) + 1
+
+		if not isSunk[blockModel] then
+			print("Sinking", blockModel.Name, "for", player.Name)
+			isSunk[blockModel] = true
 			local originalY = originalPositions[blockModel]
 			animateBlock(blockModel, originalY - SINK_DISTANCE)
 			updateBobbing(blockModel, false)
@@ -107,11 +111,23 @@ local function onTouchEnded(blockModel, hit)
 	print("Touch ended on", blockModel.Name, "by", hit.Name)
 	local character = hit.Parent
 	local player = Players:GetPlayerFromCharacter(character)
-	if player then
-		touchCounts[blockModel] = (touchCounts[blockModel] or 1) - 1
-		if touchCounts[blockModel] <= 0 then
-			print("All touches ended on", blockModel.Name)
-			touchCounts[blockModel] = 0
+	if player and touchingPlayers[blockModel] and touchingPlayers[blockModel][player] then
+		touchingPlayers[blockModel][player] = touchingPlayers[blockModel][player] - 1
+		if touchingPlayers[blockModel][player] <= 0 then
+			touchingPlayers[blockModel][player] = nil
+		end
+
+		-- Check if no players are touching
+		local hasPlayers = false
+		for _ in pairs(touchingPlayers[blockModel]) do
+			hasPlayers = true
+			break
+		end
+
+		if not hasPlayers and isSunk[blockModel] then
+			print("Popping up", blockModel.Name)
+			isSunk[blockModel] = false
+			touchingPlayers[blockModel] = {}
 			local originalY = originalPositions[blockModel]
 			animateBlock(blockModel, originalY)
 			updateBobbing(blockModel, true)
@@ -132,11 +148,22 @@ for _, blockModel in ipairs(blocks) do
 	print("Processing block:", blockModel.Name)
 	if blockModel:IsA("Model") then
 		print("Is Model:", blockModel.Name)
+		if not blockModel.PrimaryPart then
+			local parts = blockModel:GetChildren()
+			for _, part in ipairs(parts) do
+				if part:IsA("BasePart") then
+					blockModel.PrimaryPart = part
+					print("Auto-set PrimaryPart for", blockModel.Name, "to", part.Name)
+					break
+				end
+			end
+		end
 		if blockModel.PrimaryPart then
 			print("Has PrimaryPart:", blockModel.PrimaryPart.Name)
 			if blockModel.PrimaryPart.Anchored then
 				originalPositions[blockModel] = blockModel.PrimaryPart.Position.Y
-				touchCounts[blockModel] = 0
+				isSunk[blockModel] = false
+				touchingPlayers[blockModel] = {}
 				print("Set up", blockModel.Name, "at Y =", originalPositions[blockModel])
 
 				for _, part in ipairs(blockModel:GetDescendants()) do
@@ -146,6 +173,8 @@ for _, blockModel in ipairs(blocks) do
 						part.TouchEnded:Connect(function(hit) onTouchEnded(blockModel, hit) end)
 					end
 				end
+
+		
 
 				updateBobbing(blockModel, true)
 
@@ -184,7 +213,8 @@ CollectionService:GetInstanceAddedSignal("FloatingBlock"):Connect(function(block
 	print("New block added:", blockModel.Name)
 	if blockModel:IsA("Model") and blockModel.PrimaryPart and blockModel.PrimaryPart.Anchored then
 		originalPositions[blockModel] = blockModel.PrimaryPart.Position.Y
-		touchCounts[blockModel] = 0
+		isSunk[blockModel] = false
+		touchingPlayers[blockModel] = {}
 		for _, part in ipairs(blockModel:GetDescendants()) do
 			if part:IsA("BasePart") then
 				print("Connecting events for new part:", part.Name)
@@ -192,6 +222,7 @@ CollectionService:GetInstanceAddedSignal("FloatingBlock"):Connect(function(block
 				part.TouchEnded:Connect(function(hit) onTouchEnded(blockModel, hit) end)
 			end
 		end
+	
 		updateBobbing(blockModel, true)
 
 		if not blockModel.PrimaryPart:FindFirstChild("SinkSound") then
@@ -218,9 +249,12 @@ end)
 CollectionService:GetInstanceRemovedSignal("FloatingBlock"):Connect(function(blockModel)
 	print("Block removed:", blockModel.Name)
 	originalPositions[blockModel] = nil
-	touchCounts[blockModel] = nil
+	isSunk[blockModel] = nil
+	touchingPlayers[blockModel] = nil
 	if bobbingTweens[blockModel] then
 		bobbingTweens[blockModel]:Cancel()
 		bobbingTweens[blockModel] = nil
 	end
 end)
+
+for _, p in ipairs(workspace.BlockA:GetChildren()) do print(p.Name, p.ClassName, p.Anchored, p.CanCollide) end
