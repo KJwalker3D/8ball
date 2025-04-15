@@ -11,12 +11,12 @@ local POP_TIME = 1 -- Seconds to pop up
 local PARTICLE_COUNT = 50 -- Particles on pop
 local SOUND_FADE_DURATION = 1 -- Seconds for sound fade-out
 local TOUCH_ENDED_DEBOUNCE = 0.7 -- Seconds to verify player left
-local SHOW_TRIGGER_ZONES = true -- Toggle for debugging
+local SHOW_TRIGGER_ZONES = false -- Toggle for debugging
 
 -- Track state
-local originalCFrames = {} -- [blockModel] = CFrame
+local originalPositions = {} -- [part] = Y
 local blockStates = {} -- [blockModel] = {isSunk, isAnimating, touchingPlayers, touchConnections, highlight}
-local activeTweens = {} -- [blockModel] = tween
+local activeTweens = {} -- [part] = tween
 local taggedBlocks = {} -- Track valid blocks
 
 -- Animate block
@@ -28,50 +28,73 @@ local function animateBlock(blockModel, targetOffsetY, force)
 	blockStates[blockModel].isAnimating = true
 	print("Animating", blockModel.Name, "to offset Y =", targetOffsetY)
 
-	local primaryPart = blockModel.PrimaryPart
-	if not primaryPart then
-		print("No PrimaryPart for", blockModel.Name, "- aborting animation")
+	local parts = {}
+	for _, part in ipairs(blockModel:GetChildren()) do
+		if part:IsA("BasePart") then
+			table.insert(parts, part)
+		end
+	end
+	if #parts == 0 then
+		print("No BaseParts in", blockModel.Name, "- aborting animation")
 		blockStates[blockModel].isAnimating = nil
 		return
 	end
-
-	if not originalCFrames[blockModel] then
-		originalCFrames[blockModel] = primaryPart.CFrame
-		print("Stored original CFrame for", blockModel.Name, "at Y =", primaryPart.Position.Y)
+	if #parts ~= 2 then
+		print("Warning:", blockModel.Name, "has", #parts, "BaseParts, expected 2")
 	end
 
-	local targetY = originalCFrames[blockModel].Position.Y + targetOffsetY
-	local targetCFrame = CFrame.new(primaryPart.Position.X, targetY, primaryPart.Position.Z) * primaryPart.CFrame.Rotation
-	print("Tweening", blockModel.Name, "from Y =", primaryPart.Position.Y, "to Y =", targetY)
+	for _, part in ipairs(parts) do
+		if not originalPositions[part] then
+			originalPositions[part] = part.Position.Y
+			print("Stored original Y =", originalPositions[part], "for", part.Name)
+		end
+		local targetY = originalPositions[part] + targetOffsetY
+		print("Tweening", part.Name, "from Y =", part.Position.Y, "to Y =", targetY)
 
-	if activeTweens[blockModel] then
-		activeTweens[blockModel]:Cancel()
-		activeTweens[blockModel] = nil
-		print("Canceled existing tween for", blockModel.Name)
+		if activeTweens[part] then
+			activeTweens[part]:Cancel()
+			activeTweens[part] = nil
+			print("Canceled existing tween for", part.Name)
+		end
+
+		local tweenInfo = TweenInfo.new(
+			targetOffsetY < 0 and SINK_TIME or POP_TIME,
+			Enum.EasingStyle.Sine,
+			Enum.EasingDirection.InOut
+		)
+		local tween = TweenService:Create(
+			part,
+			tweenInfo,
+			{CFrame = CFrame.new(part.Position.X, targetY, part.Position.Z) * part.CFrame.Rotation}
+		)
+		activeTweens[part] = tween
+		local startTime = tick()
+		tween:Play()
+		tween.Completed:Connect(function(status)
+			local duration = tick() - startTime
+			print("Tween completed for", part.Name, "at Y =", part.Position.Y, "status:", status, "duration:", duration)
+			if activeTweens[part] == tween then
+				activeTweens[part] = nil
+			end
+			-- Check if all parts done
+			local allDone = true
+			for _, p in ipairs(parts) do
+				if activeTweens[p] then
+					allDone = false
+					break
+				end
+			end
+			if allDone then
+				blockStates[blockModel].isAnimating = nil
+				print("All animations done for", blockModel.Name)
+			end
+			-- Fallback if tween fails
+			if math.abs(part.Position.Y - targetY) > 0.1 then
+				print("Forcing Y =", targetY, "for", part.Name)
+				part.CFrame = CFrame.new(part.Position.X, targetY, part.Position.Z) * part.CFrame.Rotation
+			end
+		end)
 	end
-
-	local tweenInfo = TweenInfo.new(
-		targetOffsetY < 0 and SINK_TIME or POP_TIME,
-		Enum.EasingStyle.Sine,
-		Enum.EasingDirection.InOut
-	)
-	local tween = TweenService:Create(primaryPart, tweenInfo, {CFrame = targetCFrame})
-	activeTweens[blockModel] = tween
-	local startTime = tick()
-	tween:Play()
-	tween.Completed:Connect(function(status)
-		local duration = tick() - startTime
-		print("Tween completed for", blockModel.Name, "at Y =", primaryPart.Position.Y, "status:", status, "duration:", duration)
-		if activeTweens[blockModel] == tween then
-			activeTweens[blockModel] = nil
-		end
-		blockStates[blockModel].isAnimating = nil
-		-- Fallback if tween fails
-		if math.abs(primaryPart.Position.Y - targetY) > 0.1 then
-			print("Forcing Y =", targetY, "for", blockModel.Name)
-			primaryPart.CFrame = targetCFrame
-		end
-	end)
 end
 
 -- Pop block up
@@ -123,31 +146,23 @@ local function setupBlock(blockModel)
 			return false
 		end
 		local partCount = 0
-		local primaryPart = blockModel.PrimaryPart
+		local partsList = {}
 		for _, p in ipairs(blockModel:GetChildren()) do
 			if p:IsA("BasePart") then
 				partCount = partCount + 1
-				if p ~= primaryPart then
-					-- Weld to PrimaryPart
-					local weld = Instance.new("WeldConstraint")
-					weld.Name = "BlockWeld_" .. p.Name
-					weld.Part0 = primaryPart
-					weld.Part1 = p
-					weld.Parent = primaryPart
-					print("Welded", p.Name, "to PrimaryPart", primaryPart.Name)
-				end
+				table.insert(partsList, p.Name)
 			end
 		end
-		print("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, "parts:", partCount, "PrimaryPart Y:", primaryPart.Position.Y, "CanCollide:", primaryPart.CanCollide)
+		print("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, "parts:", partCount, "names:", table.concat(partsList, ", "), "PrimaryPart Y:", blockModel.PrimaryPart.Position.Y, "CanCollide:", blockModel.PrimaryPart.CanCollide)
 
 		-- Anchor and clean parts
 		for _, part in ipairs(blockModel:GetChildren()) do
 			if part:IsA("BasePart") then
 				part.Anchored = true
-				part:BreakJoints() -- Remove non-WeldConstraint joints
+				part:BreakJoints()
 				local joints = part:GetJoints()
 				for _, joint in ipairs(joints) do
-					if (joint:IsA("Constraint") and not joint:IsA("WeldConstraint")) or joint:IsA("Weld") then
+					if joint:IsA("Constraint") or joint:IsA("Weld") then
 						print("Removing joint", joint.Name, "from", part.Name)
 						joint:Destroy()
 					end
@@ -165,6 +180,7 @@ local function setupBlock(blockModel)
 		}
 
 		-- Connect touch events to PrimaryPart
+		local primaryPart = blockModel.PrimaryPart
 		local touchConn = primaryPart.Touched:Connect(function(hit)
 			local player = Players:GetPlayerFromCharacter(hit.Parent)
 			if player and hit.Name == "HumanoidRootPart" then
@@ -236,7 +252,7 @@ local function setupBlock(blockModel)
 				attachment.Parent = blockModel.PrimaryPart
 				local particles = Instance.new("ParticleEmitter")
 				particles.Name = "PopParticles"
-				particles.Texture = "rbxassetid://243728076"
+				particles.Texture = "rbxassetid://14500233914"
 				particles.Lifetime = NumberRange.new(1, 2)
 				particles.Rate = 0
 				particles.Speed = NumberRange.new(5, 10)
@@ -319,9 +335,11 @@ blocksFolder.ChildRemoved:Connect(function(blockModel)
 		for _, conn in ipairs(blockStates[blockModel].touchConnections) do
 			conn:Disconnect()
 		end
-		if activeTweens[blockModel] then
-			activeTweens[blockModel]:Cancel()
-			activeTweens[blockModel] = nil
+		for _, part in ipairs(blockModel:GetChildren()) do
+			if part:IsA("BasePart") and activeTweens[part] then
+				activeTweens[part]:Cancel()
+				activeTweens[part] = nil
+			end
 		end
 		if blockStates[blockModel].highlight then
 			blockStates[blockModel].highlight:Destroy()
@@ -334,5 +352,9 @@ blocksFolder.ChildRemoved:Connect(function(blockModel)
 			break
 		end
 	end
-	originalCFrames[blockModel] = nil
+	for _, part in ipairs(blockModel:GetChildren()) do
+		if part:IsA("BasePart") then
+			originalPositions[part] = nil
+		end
+	end
 end)
