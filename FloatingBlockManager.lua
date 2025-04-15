@@ -117,11 +117,18 @@ end
 
 -- Setup block
 local function setupBlock(blockModel)
+	-- Input validation
+	if not blockModel then
+		warn("setupBlock: blockModel is nil")
+		return false
+	end
+
 	local success, err = pcall(function()
 		if not blockModel:IsA("Model") then
-			print("Not a Model:", blockModel.Name, "is a", blockModel.ClassName)
+			warn("setupBlock: Invalid type for", blockModel.Name, "- expected Model, got", blockModel.ClassName)
 			return false
 		end
+		
 		print("Setting up block:", blockModel.Name)
 
 		-- Set PrimaryPart
@@ -135,14 +142,14 @@ local function setupBlock(blockModel)
 			end
 		end
 		if not blockModel.PrimaryPart then
-			print("No BasePart found for", blockModel.Name, "- skipping")
+			warn("setupBlock: No BasePart found for", blockModel.Name)
 			return false
 		end
 
 		-- Validate bounding box
 		local cframe, size = blockModel:GetBoundingBox()
 		if not cframe or not size or size.X < 0.1 or size.Y < 0.1 or size.Z < 0.1 then
-			print("Invalid bounding box for", blockModel.Name, "- size:", size or "nil")
+			warn("setupBlock: Invalid bounding box for", blockModel.Name, "- size:", size or "nil")
 			return false
 		end
 		local partCount = 0
@@ -289,10 +296,39 @@ local function setupBlock(blockModel)
 
 		return true
 	end)
+	
 	if not success then
-		print("Error setting up", blockModel.Name, ":", err)
+		warn("setupBlock: Error setting up", blockModel.Name, ":", err)
+		-- Cleanup if setup failed
+		if blockStates[blockModel] then
+			-- Cleanup connections
+			for _, conn in ipairs(blockStates[blockModel].touchConnections) do
+				conn:Disconnect()
+			end
+			
+			-- Cleanup highlight
+			if blockStates[blockModel].highlight then
+				blockStates[blockModel].highlight:Destroy()
+			end
+			
+			-- Cleanup sound and particles
+			if blockModel.PrimaryPart then
+				local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
+				if sound then
+					sound:Destroy()
+				end
+				
+				local attachment = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
+				if attachment then
+					attachment:Destroy()
+				end
+			end
+			
+			blockStates[blockModel] = nil
+		end
 		return false
 	end
+	
 	return true
 end
 

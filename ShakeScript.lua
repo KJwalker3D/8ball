@@ -1,22 +1,60 @@
--- Asset IDs
-local ASSET_IDS = {
-	-- Sounds
-	COIN_SOUND = "rbxassetid://607665037",
-	CLICK_BALL_SOUND = "rbxassetid://9125397583",
-	CELEBRATION_SOUND_ANGRY = "rbxassetid://186669531",
-	CELEBRATION_SOUND_MYSTERIOUS = "rbxassetid://9116395089",
-	CELEBRATION_SOUND_SWEET = "rbxassetid://111598396888819",
-	CELEBRATION_SOUND_SARCASTIC = "rbxassetid://18204124897",
-	BADGE_SOUND = "rbxassetid://6648577112",
-	DAILY_BONUS_SOUND = "rbxassetid://9125644905",
+--[[
+	Configuration
+	All game settings and constants in one place
+]]
+local CONFIG = {
+	-- Game Settings
+	DEFAULT_COINS = 100,
+	DAILY_BONUS_AMOUNT = 100,
+	SHAKE_REWARD_VIP = 10,
+	SHAKE_REWARD_NORMAL = 5,
+	REROLL_COST = 100,
 	
-	-- Particles
-	CELEBRATION_PARTICLES_ANGRY = "rbxassetid://16933997761",
-	CELEBRATION_PARTICLES_MYSTERIOUS = "rbxassetid://6700009498",
-	CELEBRATION_PARTICLES_SWEET = "rbxassetid://5762409776",
-	CELEBRATION_PARTICLES_SARCASTIC = "rbxassetid://16908034492",
-	BADGE_PARTICLES = "rbxassetid://18699497367",
-	DAILY_BONUS_PARTICLES = "rbxassetid://438224846"
+	-- Animation Settings
+	SHAKE_DURATION = 15,
+	SHAKE_INTERVAL = 0.2,
+	SHAKE_INTERVAL_DECREASE = 0.01,
+	SHAKE_OFFSET = 0.1,
+	CELEBRATION_DURATION = 1,
+	PROMPT_TIMEOUT = 5,
+	
+	-- Visual Settings
+	HOVER_AMPLITUDE = 1.5,
+	HOVER_SPEED = 0.5,
+	SPIN_SPEED = 36,
+	
+	-- Asset IDs
+	ASSET_IDS = {
+		-- Sounds
+		COIN_SOUND = "rbxassetid://607665037",
+		CLICK_BALL_SOUND = "rbxassetid://9125397583",
+		CELEBRATION_SOUND_ANGRY = "rbxassetid://186669531",
+		CELEBRATION_SOUND_MYSTERIOUS = "rbxassetid://9116395089",
+		CELEBRATION_SOUND_SWEET = "rbxassetid://111598396888819",
+		CELEBRATION_SOUND_SARCASTIC = "rbxassetid://18204124897",
+		BADGE_SOUND = "rbxassetid://6648577112",
+		DAILY_BONUS_SOUND = "rbxassetid://9125644905",
+		
+		-- Particles
+		CELEBRATION_PARTICLES_ANGRY = "rbxassetid://16933997761",
+		CELEBRATION_PARTICLES_MYSTERIOUS = "rbxassetid://6700009498",
+		CELEBRATION_PARTICLES_SWEET = "rbxassetid://5762409776",
+		CELEBRATION_PARTICLES_SARCASTIC = "rbxassetid://16908034492",
+		BADGE_PARTICLES = "rbxassetid://18699497367",
+		DAILY_BONUS_PARTICLES = "rbxassetid://438224846"
+	},
+	
+	-- Product IDs
+	PRODUCT_IDS = {
+		COIN_PACK = 3258288474,
+		VIP_PASS = 1161085782
+	},
+	
+	-- Badge IDs
+	BADGE_IDS = {
+		VISITOR = 4484079797052173,
+		MASTER = 1768735404098629
+	}
 }
 
 -- Services
@@ -42,24 +80,24 @@ promptEnableEvent.Parent = game.ReplicatedStorage
 
 -- Sounds
 local coinSound = Instance.new("Sound")
-coinSound.SoundId = ASSET_IDS.COIN_SOUND
+coinSound.SoundId = CONFIG.ASSET_IDS.COIN_SOUND
 coinSound.Parent = model
 
 local clickBallSound = Instance.new("Sound")
-clickBallSound.SoundId = ASSET_IDS.CLICK_BALL_SOUND
+clickBallSound.SoundId = CONFIG.ASSET_IDS.CLICK_BALL_SOUND
 clickBallSound.Parent = ball
 
 -- Constants
-local COIN_PACK_ID = 3258288474
-local VIP_PASS_ID = 1161085782
-local BADGE_ID_VISITOR = 4484079797052173
-local BADGE_ID_MASTER = 1768735404098629
+local COIN_PACK_ID = CONFIG.PRODUCT_IDS.COIN_PACK
+local VIP_PASS_ID = CONFIG.PRODUCT_IDS.VIP_PASS
+local BADGE_ID_VISITOR = CONFIG.BADGE_IDS.VISITOR
+local BADGE_ID_MASTER = CONFIG.BADGE_IDS.MASTER
 
 -- Ball animation constants
 local baseCFrame = ball.CFrame
-local hoverAmplitude = 1.5
-local hoverSpeed = 0.5
-local spinSpeed = 36
+local hoverAmplitude = CONFIG.HOVER_AMPLITUDE
+local hoverSpeed = CONFIG.HOVER_SPEED
+local spinSpeed = CONFIG.SPIN_SPEED
 
 -- State variables
 local isShaking = false
@@ -104,6 +142,84 @@ prompt.Enabled = true
 prompt.Parent = ball
 
 --[[
+	Utility Functions
+	Helper functions for common operations
+]]
+
+--- Creates a new sound instance with the given ID
+--- @param soundId string The sound ID to use
+--- @param parent Instance The parent instance
+--- @param volume number? Optional volume (default: 1)
+--- @return Sound The created sound instance
+local function createSound(soundId, parent, volume)
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = volume or 1
+	sound.Parent = parent
+	return sound
+end
+
+--- Creates a new particle emitter with the given settings
+--- @param texture string The particle texture ID
+--- @param color Color3 The particle color
+--- @param parent Instance The parent instance
+--- @param rate number The emission rate
+--- @return ParticleEmitter The created particle emitter
+local function createParticleEmitter(texture, color, parent, rate)
+	local particles = Instance.new("ParticleEmitter")
+	particles.Texture = texture
+	particles.Color = ColorSequence.new(color)
+	particles.Rate = rate
+	particles.Lifetime = NumberRange.new(0.5, 1)
+	particles.Speed = NumberRange.new(5, 10)
+	particles.SpreadAngle = Vector2.new(360, 360)
+	particles.Parent = parent
+	return particles
+end
+
+--- Creates a notification billboard
+--- @param text string The text to display
+--- @param color Color3 The text color
+--- @param parent Instance The parent instance
+--- @return table A table containing the billboard and text label
+local function createNotification(text, color, parent)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "NotificationGui"
+	billboard.Size = UDim2.new(0, 50, 0, 25)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = parent
+	
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = text
+	textLabel.TextColor3 = color
+	textLabel.TextStrokeTransparency = 0
+	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.TextScaled = true
+	textLabel.Parent = billboard
+	
+	return {
+		billboard = billboard,
+		textLabel = textLabel
+	}
+end
+
+--- Safely executes a function with error handling
+--- @param func function The function to execute
+--- @param errorMessage string The error message to display if the function fails
+--- @return boolean, any Whether the function succeeded and its return value
+local function safeExecute(func, errorMessage)
+	local success, result = pcall(func)
+	if not success then
+		warn(errorMessage .. ": " .. tostring(result))
+	end
+	return success, result
+end
+
+--[[
 	Core Game Functions
 	Functions that handle the main game mechanics
 ]]
@@ -120,24 +236,32 @@ local function shakeBall(player)
 	local originalCFrame = ball.CFrame
 	
 	-- Shake animation
-	for i = 1, 15 do
+	for i = 1, CONFIG.SHAKE_DURATION do
 		local rand = personalities[math.random(1, #personalities)]
 		ball.Color = rand.color
 		if particles then particles.Color = ColorSequence.new(rand.color) end
-		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
+		
+		local offset = Vector3.new(
+			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
+			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
+			math.random(-1, 1) * CONFIG.SHAKE_OFFSET
+		)
+		
 		local tweenBall = TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset})
 		local tweenToon = TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset})
 		activeTweens[tweenBall] = true
 		activeTweens[tweenToon] = true
 		tweenBall:Play()
 		tweenToon:Play()
-		wait(0.2 - (i * 0.01))
+		
+		wait(CONFIG.SHAKE_INTERVAL - (i * CONFIG.SHAKE_INTERVAL_DECREASE))
 	end
 	
 	-- Final personality selection
 	local final = personalities[math.random(1, #personalities)]
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
+	
 	local finalTweenBall = TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame})
 	local finalTweenToon = TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame})
 	activeTweens[finalTweenBall] = true
@@ -147,33 +271,39 @@ local function shakeBall(player)
 	
 	-- Set personality and play effects
 	ball:SetAttribute("Personality", final.type)
+	local particleTexture, particleColor, soundId
+	
 	if final.type == "Angry" then
-		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_ANGRY
-		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
-		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_ANGRY
+		particleTexture = CONFIG.ASSET_IDS.CELEBRATION_PARTICLES_ANGRY
+		particleColor = Color3.fromRGB(255, 0, 0)
+		soundId = CONFIG.ASSET_IDS.CELEBRATION_SOUND_ANGRY
 	elseif final.type == "Mysterious" then
-		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_MYSTERIOUS
-		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 0, 255))
-		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_MYSTERIOUS
+		particleTexture = CONFIG.ASSET_IDS.CELEBRATION_PARTICLES_MYSTERIOUS
+		particleColor = Color3.fromRGB(0, 0, 255)
+		soundId = CONFIG.ASSET_IDS.CELEBRATION_SOUND_MYSTERIOUS
 	elseif final.type == "Sweet" then
-		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_SWEET
-		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 105, 180))
-		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_SWEET
+		particleTexture = CONFIG.ASSET_IDS.CELEBRATION_PARTICLES_SWEET
+		particleColor = Color3.fromRGB(255, 105, 180)
+		soundId = CONFIG.ASSET_IDS.CELEBRATION_SOUND_SWEET
 	elseif final.type == "Sarcastic" then
-		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_SARCASTIC
-		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0))
-		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_SARCASTIC
+		particleTexture = CONFIG.ASSET_IDS.CELEBRATION_PARTICLES_SARCASTIC
+		particleColor = Color3.fromRGB(0, 255, 0)
+		soundId = CONFIG.ASSET_IDS.CELEBRATION_SOUND_SARCASTIC
 	end
 	
+	celebParticles.Texture = particleTexture
+	celebParticles.Color = ColorSequence.new(particleColor)
+	celebSound.SoundId = soundId
 	celebParticles.Enabled = true
 	celebSound:Play()
-	wait(1)
+	
+	wait(CONFIG.CELEBRATION_DURATION)
 	celebParticles.Enabled = false
 	isShaking = false
 	
 	-- Timeout to re-enable prompt if client doesn't respond
 	spawn(function()
-		wait(5)
+		wait(CONFIG.PROMPT_TIMEOUT)
 		if not prompt.Enabled then
 			prompt.Enabled = true
 			print("Prompt re-enabled via timeout for " .. player.Name)
@@ -206,7 +336,7 @@ local function loadCoins(player)
 		warn("Failed to load coins for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
 		wait(2)
 	end
-	return success and data or 100
+	return success and data or CONFIG.DEFAULT_COINS
 end
 
 --[[
@@ -223,47 +353,24 @@ local function awardBadge(player, badgeId, badgeName)
 		BadgeService:AwardBadge(player.UserId, badgeId)
 		
 		-- Create badge notification
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "BadgeGui"
-		billboard.Size = UDim2.new(0, 50, 0, 25)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = ball
-		
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.BackgroundTransparency = 1
-		textLabel.Text = "Badge Earned: " .. badgeName .. "!"
-		textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-		textLabel.TextStrokeTransparency = 0
-		textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-		textLabel.Font = Enum.Font.SourceSansBold
-		textLabel.TextScaled = true
-		textLabel.Parent = billboard
+		local notification = createNotification("Badge Earned: " .. badgeName .. "!", Color3.fromRGB(255, 215, 0), ball)
 		
 		-- Create celebration effects
-		local particles = Instance.new("ParticleEmitter")
-		particles.Texture = ASSET_IDS.BADGE_PARTICLES
-		particles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
-		particles.Rate = 30
-		particles.Lifetime = NumberRange.new(0.5, 1)
-		particles.Speed = NumberRange.new(5, 10)
-		particles.SpreadAngle = Vector2.new(360, 360)
-		particles.Parent = ball
-		particles.Enabled = true
+		local particles = createParticleEmitter(CONFIG.ASSET_IDS.BADGE_PARTICLES, Color3.fromRGB(255, 215, 0), ball, 30)
 		
-		local sound = Instance.new("Sound")
-		sound.SoundId = ASSET_IDS.BADGE_SOUND
-		sound.Parent = ball
+		local sound = createSound(CONFIG.ASSET_IDS.BADGE_SOUND, ball, 0.7)
 		sound:Play()
 		
 		-- Animate and cleanup
 		wait(1.5)
-		TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+		TweenService:Create(notification.textLabel, TweenInfo.new(0.5), {
+			TextTransparency = 1,
+			TextStrokeTransparency = 1
+		}):Play()
 		wait(0.5)
 		particles.Enabled = false
 		particles:Destroy()
-		billboard:Destroy()
+		notification.billboard:Destroy()
 		sound:Destroy()
 	end
 end
@@ -271,48 +378,25 @@ end
 --- Shows the daily bonus animation and effects
 --- @param player Player The player who received the daily bonus
 local function showDailyBonus(player)
-	local bonusParticles = Instance.new("ParticleEmitter")
-	bonusParticles.Texture = ASSET_IDS.DAILY_BONUS_PARTICLES
-	bonusParticles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
-	bonusParticles.Rate = 50
-	bonusParticles.Lifetime = NumberRange.new(0.5, 1)
-	bonusParticles.Speed = NumberRange.new(5, 10)
-	bonusParticles.SpreadAngle = Vector2.new(360, 360)
-	bonusParticles.Parent = ball
+	local bonusParticles = createParticleEmitter(CONFIG.ASSET_IDS.DAILY_BONUS_PARTICLES, Color3.fromRGB(255, 215, 0), ball, 50)
 	bonusParticles.Enabled = true
 	
-	local bonusSound = Instance.new("Sound")
-	bonusSound.SoundId = ASSET_IDS.DAILY_BONUS_SOUND
-	bonusSound.Volume = 0.7
-	bonusSound.Parent = ball
+	local bonusSound = createSound(CONFIG.ASSET_IDS.DAILY_BONUS_SOUND, ball, 0.7)
 	bonusSound:Play()
 	
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "DailyBonusGui"
-	billboard.Size = UDim2.new(0, 50, 0, 25)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = ball
-	
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Size = UDim2.new(2, 0, 2, 0)
-	textLabel.BackgroundTransparency = 1
-	textLabel.Text = "Daily Bonus: +100 Coins!"
-	textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-	textLabel.TextStrokeTransparency = 0
-	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.TextScaled = true
-	textLabel.Parent = billboard
+	local notification = createNotification("Daily Bonus: +100 Coins!", Color3.fromRGB(255, 215, 0), ball)
 	
 	wait(1.5)
-	local tween = TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1})
+	local tween = TweenService:Create(notification.textLabel, TweenInfo.new(0.5), {
+		TextTransparency = 1,
+		TextStrokeTransparency = 1
+	})
 	tween:Play()
 	wait(0.5)
 	bonusParticles.Enabled = false
 	bonusParticles:Destroy()
 	bonusSound:Destroy()
-	billboard:Destroy()
+	notification.billboard:Destroy()
 end
 
 --[[
@@ -356,14 +440,14 @@ Players.PlayerAdded:Connect(function(player)
 	
 	-- Fallback if load fails
 	if not success or not data or not data.Coins then
-		data = {Coins = 100, VIP = false}
-		warn("Using default data for", player.Name, ": Coins = 100")
+		data = {Coins = CONFIG.DEFAULT_COINS, VIP = false}
+		warn("Using default data for", player.Name, ": Coins = " .. CONFIG.DEFAULT_COINS)
 	end
 	
 	-- Initialize player data
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
-	coins.Value = data.Coins or 100
+	coins.Value = data.Coins or CONFIG.DEFAULT_COINS
 	coins.Parent = player
 	
 	local vip = Instance.new("BoolValue")
@@ -463,7 +547,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 	
 	-- Check and award daily bonus
 	if forceDailyBonus or (currentTime - lastClaim.Value >= dayInSeconds) then
-		coins.Value = coins.Value + 100
+		coins.Value = coins.Value + CONFIG.DAILY_BONUS_AMOUNT
 		lastClaim.Value = currentTime
 		coinSound:Play()
 		showDailyBonus(player)
@@ -472,7 +556,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 	
 	-- Process shake
 	local final = shakeBall(player)
-	coins.Value = coins.Value + (vip.Value and 10 or 5)
+	coins.Value = coins.Value + (vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL)
 	coinSound:Play()
 	
 	-- Check for Master Shaker badge
