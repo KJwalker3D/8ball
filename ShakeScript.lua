@@ -23,9 +23,9 @@ coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local COIN_PACK_ID = 3258288474
-local VIP_PASS_ID = 12345678 -- Replace with real GamePass ID
-local BADGE_ID_VISITOR = 2128635823 -- Replace
-local BADGE_ID_MASTER = 2128635824 -- Replace
+local VIP_PASS_ID = 1161085782 -- Replace with real GamePass ID
+local BADGE_ID_VISITOR = 4484079797052173 -- Replace
+local BADGE_ID_MASTER = 1768735404098629 -- Replace
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -234,7 +234,7 @@ local function showDailyBonus(player)
 	bonusParticles.Enabled = true
 
 	local bonusSound = Instance.new("Sound")
-	bonusSound.SoundId = "rbxassetid://9116395089"
+	bonusSound.SoundId = "rbxassetid://9125644905"
 	bonusSound.Volume = 0.7
 	bonusSound.Parent = ball
 	bonusSound:Play()
@@ -377,7 +377,6 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	end
 	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
-
 
 --- kj: make two badges and add ids here
 --- check if vip pass should be a game pass! and update
