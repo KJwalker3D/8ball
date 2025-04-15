@@ -9,9 +9,9 @@ local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 
 local runRemote = ReplicatedStorage:WaitForChild("RunToggle", 5)
 local isRunning = false
-local walkSpeed = 16
-local runSpeed = 32
-local runAnimId = "rbxassetid://910025107" -- Default run; set to "" for Humanoid default or custom ID
+local walkSpeed = 7
+local runSpeed = 22
+local runAnimId = "" --rbxassetid://656118852" -- Default run; set to "" for Humanoid default or custom ID
 local runTrack = nil
 local ancestryConnection = nil
 

@@ -2,9 +2,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local runRemote = ReplicatedStorage:WaitForChild("RunToggle")
-local walkSpeed = 16
-local runSpeed = 32
-local maxSpeed = 32
+local walkSpeed = 7
+local runSpeed = 22
+local maxSpeed = 22
 
 runRemote.OnServerEvent:Connect(function(player, isRunning)
 	local character = player.Character
