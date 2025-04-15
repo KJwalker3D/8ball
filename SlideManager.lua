@@ -11,8 +11,8 @@ local BASE_Y = 98 -- Middle Y (~95 to 103)
 local WAVE_AMPLITUDE = 4 -- Y ±4 studs
 local WAVE_CYCLES = 2 -- 2 waves
 local Y_OFFSET = 4 -- Studs above path
-local SOUND_ID = "rbxassetid://9120858323"
-local PARTICLE_TEXTURE = "rbxassetid://14500233914"
+local SOUND_ID = "rbxassetid://136877968528580"
+local PARTICLE_TEXTURE = "rbxassetid://13631054028"
 local MAX_SLIDE_TIME = 10 -- Seconds
 local SEAT_ANIMATION = "rbxassetid://2506281703"
 local DEBUG = true -- Toggle for debugging
@@ -183,7 +183,7 @@ local function startSliding(player)
 		end
 
 		-- Pitch shift
-		sound.PlaybackSpeed = 0.9 + (currentSpeed / SLIDE_SPEED) * 0.8
+		sound.PlaybackSpeed = 0.5 + math.random() * 1
 	end)
 	slidingPlayers[player].connection = connection
 end
@@ -227,11 +227,11 @@ local function setupSlide()
 	if not startZone then
 		startZone = Instance.new("Part")
 		startZone.Name = "StartZone"
-		startZone.Size = Vector3.new(30, 5, 4)
-		startZone.Position = Vector3.new(-110.514, 107, 7)
+		startZone.Size = Vector3.new(33, 7, 7)
+		startZone.Position = Vector3.new(-110.514, 107, 10)
 		startZone.Anchored = true
 		startZone.CanCollide = true
-		startZone.Transparency = 0.5
+		startZone.Transparency = 1
 		startZone.Parent = slideModel
 		print("Created StartZone at", startZone.Position)
 	end
