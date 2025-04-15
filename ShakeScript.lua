@@ -1,7 +1,13 @@
 local model = script.Parent
 local ball = model:WaitForChild("ball")
 local part = model:WaitForChild("CelebrationParticleEmitter")
-local clickDetector = model:WaitForChild("ClickDetector")
+local prompt = Instance.new("ProximityPrompt")
+prompt.ActionText = "Ask the 8-Ball"
+prompt.HoldDuration = 0.5
+prompt.MaxActivationDistance = 30 -- Was 8
+prompt.RequiresLineOfSight = false -- Avoid obstructions
+prompt.Enabled = true
+prompt.Parent = ball
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -17,9 +23,9 @@ coinSound.SoundId = "rbxassetid://607665037"
 coinSound.Parent = model
 
 local COIN_PACK_ID = 3258288474
-local VIP_PASS_ID = 3259877070 -- Placeholder, replace with real ProductId
-local BADGE_ID_VISITOR = 111
-local BADGE_ID_MASTER = 222
+local VIP_PASS_ID = 12345678 -- Replace with real GamePass ID
+local BADGE_ID_VISITOR = 2128635823 -- Replace
+local BADGE_ID_MASTER = 2128635824 -- Replace
 
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
@@ -48,7 +54,7 @@ local personalities = {
 	}}
 }
 
-local isShaking = false -- Flag to pause hover/spin during shake
+local isShaking = false
 
 local function shakeBall()
 	isShaking = true
@@ -56,7 +62,6 @@ local function shakeBall()
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
 	local celebSound = model:WaitForChild("CelebrationSound")
 	local originalCFrame = ball.CFrame
-	--local text = model:WaitForChild("Text")
 	local ballToon = model:WaitForChild("ballToon")
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
@@ -64,7 +69,6 @@ local function shakeBall()
 		if particles then particles.Color = ColorSequence.new(rand.color) end
 		local offset = Vector3.new(math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1, math.random(-1, 1) * 0.1)
 		TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
-	--	TweenService:Create(text, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
 		TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset}):Play()
 		wait(0.2 - (i * 0.01))
 	end
@@ -72,7 +76,6 @@ local function shakeBall()
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 	TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
-	--	TweenService:Create(text, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame}):Play()
 	ball:SetAttribute("Personality", final.type)
 	if final.type == "Angry" then
@@ -100,21 +103,18 @@ local function shakeBall()
 	return final
 end
 
--- Hover and Spin Setup
-local baseCFrame = ball.CFrame -- Anchor point for hover/spin
-local hoverAmplitude = 1.5 -- Height of hover
-local hoverSpeed = 0.5 -- Slow hover oscillation
-local spinSpeed = 36 -- Degrees per second (360° over 10s)
+-- Hover and Spin
+local baseCFrame = ball.CFrame
+local hoverAmplitude = 1.5
+local hoverSpeed = 0.5
+local spinSpeed = 36
 
 RunService.Heartbeat:Connect(function(dt)
 	if not isShaking then
 		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
-		local spinAngle = os.clock() * spinSpeed -- Continuous rotation
-	--	local text = model:WaitForChild("Text")
+		local spinAngle = os.clock() * spinSpeed
 		local ballToon = model:WaitForChild("ballToon")
-		-- Apply hover and spin to all parts
 		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
-	--	text.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
 		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
 	end
 end)
@@ -132,8 +132,6 @@ local function loadCoins(player)
 	return success and data or 100
 end
 
-
--- Award badge with visual feedback
 local function awardBadge(player, badgeId, badgeName)
 	if not BadgeService:UserHasBadgeAsync(player.UserId, badgeId) then
 		BadgeService:AwardBadge(player.UserId, badgeId)
@@ -143,12 +141,12 @@ local function awardBadge(player, badgeId, badgeName)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.AlwaysOnTop = true
 		billboard.Parent = ball
-		
+
 		local textLabel = Instance.new("TextLabel")
 		textLabel.Size = UDim2.new(1, 0, 1, 0)
 		textLabel.BackgroundTransparency = 1
 		textLabel.Text = "Badge Earned: " .. badgeName .. "!"
-		textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+		textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 		textLabel.TextStrokeTransparency = 0
 		textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 		textLabel.Font = Enum.Font.SourceSansBold
@@ -156,7 +154,7 @@ local function awardBadge(player, badgeId, badgeName)
 		textLabel.Parent = billboard
 
 		local particles = Instance.new("ParticleEmitter")
-		particles.Texture = "rbxassetid://18699497367" -- Confetti string effect
+		particles.Texture = "rbxassetid://18699497367"
 		particles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
 		particles.Rate = 30
 		particles.Lifetime = NumberRange.new(0.5, 1)
@@ -166,7 +164,7 @@ local function awardBadge(player, badgeId, badgeName)
 		particles.Enabled = true
 
 		local sound = Instance.new("Sound")
-		sound.SoundId = "rbxassetid://6648577112" -- Tada sound
+		sound.SoundId = "rbxassetid://6648577112"
 		sound.Parent = ball
 		sound:Play()
 
@@ -180,8 +178,6 @@ local function awardBadge(player, badgeId, badgeName)
 	end
 end
 
-
-
 Players.PlayerAdded:Connect(function(player)
 	local data = CoinSaver.loadData(player)
 	local coins = Instance.new("IntValue")
@@ -190,14 +186,13 @@ Players.PlayerAdded:Connect(function(player)
 	coins.Parent = player
 	local vip = Instance.new("BoolValue")
 	vip.Name = "VIP"
-	vip.Value = data.VIP
+	vip.Value = MarketplaceService:UserOwnsGamePassAsync(player.UserId, VIP_PASS_ID) or data.VIP
 	vip.Parent = player
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
 	lastClaim.Value = os.time()
 	lastClaim.Parent = player
-	
-	-- Track clicked personalities
+
 	local shakeProgress = Instance.new("Folder")
 	shakeProgress.Name = "ShakeProgress"
 	shakeProgress.Parent = player
@@ -207,13 +202,11 @@ Players.PlayerAdded:Connect(function(player)
 		clicked.Value = false
 		clicked.Parent = shakeProgress
 	end
-	
-	-- Award visitor badge
+
 	awardBadge(player, BADGE_ID_VISITOR, "Welcome!")
-	
+
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 end)
-
 
 Players.PlayerRemoving:Connect(function(player)
 	CoinSaver.saveData(player)
@@ -225,35 +218,31 @@ game:BindToClose(function()
 	end
 end)
 
-
 local clickBallSound = Instance.new("Sound")
 clickBallSound.SoundId = "rbxassetid://9125397583"
 clickBallSound.Parent = ball
 
--- Daily Bonus Visuals with Text
 local function showDailyBonus(player)
-	-- Coin Particles
 	local bonusParticles = Instance.new("ParticleEmitter")
-	bonusParticles.Texture = "rbxassetid://438224846" -- Coin pile texture
-	bonusParticles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0)) -- Gold
-	bonusParticles.Rate = 50 -- High burst rate
-	bonusParticles.Lifetime = NumberRange.new(0.5, 1) -- Short lifetime
-	bonusParticles.Speed = NumberRange.new(5, 10) -- Moderate spread
-	bonusParticles.SpreadAngle = Vector2.new(360, 360) -- Full circle emission
+	bonusParticles.Texture = "rbxassetid://438224846"
+	bonusParticles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
+	bonusParticles.Rate = 50
+	bonusParticles.Lifetime = NumberRange.new(0.5, 1)
+	bonusParticles.Speed = NumberRange.new(5, 10)
+	bonusParticles.SpreadAngle = Vector2.new(360, 360)
 	bonusParticles.Parent = ball
 	bonusParticles.Enabled = true
 
-	-- Bonus Sound
 	local bonusSound = Instance.new("Sound")
-	bonusSound.SoundId = "rbxassetid://3020841054" -- Cha-ching sound
+	bonusSound.SoundId = "rbxassetid://9116395089"
+	bonusSound.Volume = 0.7
 	bonusSound.Parent = ball
 	bonusSound:Play()
 
-	-- Bonus Text
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "DailyBonusGui"
-	billboard.Size = UDim2.new(0, 50, 0, 25) -- Studs size
-	billboard.StudsOffset = Vector3.new(0, 3, 0) -- 3 studs above ball
+	billboard.Size = UDim2.new(0, 50, 0, 25)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = ball
 
@@ -261,19 +250,17 @@ local function showDailyBonus(player)
 	textLabel.Size = UDim2.new(2, 0, 2, 0)
 	textLabel.BackgroundTransparency = 1
 	textLabel.Text = "Daily Bonus: +100 Coins!"
-	textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Gold
-	textLabel.TextStrokeTransparency = 0 -- Black outline for readability
+	textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	textLabel.TextStrokeTransparency = 0
 	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	textLabel.Font = Enum.Font.SourceSansBold
 	textLabel.TextScaled = true
 	textLabel.Parent = billboard
 
-	-- Fade out effect
-	wait(1.5) -- Show for 1.5s
+	wait(1.5)
 	local tween = TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1})
 	tween:Play()
 
-	-- Cleanup after 2 seconds total
 	wait(0.5)
 	bonusParticles.Enabled = false
 	bonusParticles:Destroy()
@@ -281,13 +268,23 @@ local function showDailyBonus(player)
 	billboard:Destroy()
 end
 
--- Debug Toggle for Testing
-local forceDailyBonus = false -- Set to true for testing, false for normal
+local forceDailyBonus = false
 
-clickDetector.MouseClick:Connect(function(player)
+prompt.Triggered:Connect(function(player)
+	if isShaking then
+		print("Prompt blocked: isShaking true")
+		return
+	end
+	print("ProximityPrompt triggered for " .. player.Name)
 	clickBallSound:Play()
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
+
+-- Debug prompt setup
+print("Prompt created:", prompt.Parent == ball and "on ball" or "not on ball")
+print("Prompt enabled:", prompt.Enabled)
+print("Ball position:", ball.Position)
+print("Ball size:", ball.Size)
 
 shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
@@ -300,14 +297,13 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 		coins.Value = coins.Value + 100
 		lastClaim.Value = currentTime
 		coinSound:Play()
-		showDailyBonus(player) -- Trigger visual feedback with text
-		print("Daily Bonus Triggered for " .. player.Name) -- Debug confirmation
+		showDailyBonus(player)
+		print("Daily Bonus Triggered for " .. player.Name)
 	end
 	local final = shakeBall()
 	coins.Value = coins.Value + (vip.Value and 10 or 5)
 	coinSound:Play()
-	
-	-- Track personality and check for master badge
+
 	local shakeProgress = player:WaitForChild("ShakeProgress")
 	local personalityClicked = shakeProgress:FindFirstChild(final.type)
 	if personalityClicked and not personalityClicked.Value then 
@@ -320,10 +316,10 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel)
 			end
 		end
 		if allClicked then
-			awardBadge(player, BADGE_ID_MASTER, "Curious cat!")
+			awardBadge(player, BADGE_ID_MASTER, "Master Shaker")
 		end
 	end
-	
+
 	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {type = "Response", ball = model, personality = final}, coins.Value)
 end)
@@ -334,8 +330,7 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 	if coins.Value >= 100 then
 		coins.Value = coins.Value - 100
 		local final = shakeBall()
-		
-		-- Track personality and check for Master Shaker (reroll case)
+
 		local shakeProgress = player:WaitForChild("ShakeProgress")
 		local personalityClicked = shakeProgress:FindFirstChild(final.type)
 		if personalityClicked and not personalityClicked.Value then
@@ -348,21 +343,26 @@ rerollEvent.OnServerEvent:Connect(function(player, ballModel)
 				end
 			end
 			if allClicked then
-				awardBadge(player, BADGE_ID_MASTER, "Master of All Shakes")
+				awardBadge(player, BADGE_ID_MASTER, "Master Shaker")
 			end
 		end
-		
-		
-		
-		
-		
+
 		CoinSaver.saveData(player)
 		shakeEvent:FireClient(player, {type = "RerollResponse", ball = model, personality = final}, coins.Value)
 	end
 end)
 
 buyVIPEvent.OnServerEvent:Connect(function(player)
-	MarketplaceService:PromptProductPurchase(player, VIP_PASS_ID)
+	MarketplaceService:PromptGamePassPurchase(player, VIP_PASS_ID)
+end)
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)
+	if gamePassId == VIP_PASS_ID and purchased then
+		local vip = player:WaitForChild("VIP")
+		vip.Value = true
+		CoinSaver.saveData(player)
+		shakeEvent:FireClient(player, {type = "Init"}, player:WaitForChild("Coins").Value)
+	end
 end)
 
 MarketplaceService.ProcessReceipt = function(receiptInfo)
@@ -373,12 +373,6 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 		coins.Value = coins.Value + 100
 		CoinSaver.saveData(player)
 		shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
-		return Enum.ProductPurchaseDecision.PurchaseGranted
-	elseif receiptInfo.ProductId == VIP_PASS_ID then
-		local vip = player:WaitForChild("VIP")
-		vip.Value = true
-		CoinSaver.saveData(player)
-		shakeEvent:FireClient(player, {type = "Init"}, player:WaitForChild("Coins").Value)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 	return Enum.ProductPurchaseDecision.NotProcessedYet
