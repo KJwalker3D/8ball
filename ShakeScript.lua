@@ -1,21 +1,25 @@
-local model = script.Parent
-local ball = model:WaitForChild("ball")
-local part = model:WaitForChild("CelebrationParticleEmitter")
-local prompt = Instance.new("ProximityPrompt")
-prompt.ActionText = "Ask the 8-Ball"
-prompt.HoldDuration = 0.5
-prompt.MaxActivationDistance = 30
-prompt.RequiresLineOfSight = false
-prompt.Enabled = true
-prompt.Parent = ball
+-- Asset IDs
+local ASSET_IDS = {
+	-- Sounds
+	COIN_SOUND = "rbxassetid://607665037",
+	CLICK_BALL_SOUND = "rbxassetid://9125397583",
+	CELEBRATION_SOUND_ANGRY = "rbxassetid://186669531",
+	CELEBRATION_SOUND_MYSTERIOUS = "rbxassetid://9116395089",
+	CELEBRATION_SOUND_SWEET = "rbxassetid://111598396888819",
+	CELEBRATION_SOUND_SARCASTIC = "rbxassetid://18204124897",
+	BADGE_SOUND = "rbxassetid://6648577112",
+	DAILY_BONUS_SOUND = "rbxassetid://9125644905",
+	
+	-- Particles
+	CELEBRATION_PARTICLES_ANGRY = "rbxassetid://16933997761",
+	CELEBRATION_PARTICLES_MYSTERIOUS = "rbxassetid://6700009498",
+	CELEBRATION_PARTICLES_SWEET = "rbxassetid://5762409776",
+	CELEBRATION_PARTICLES_SARCASTIC = "rbxassetid://16908034492",
+	BADGE_PARTICLES = "rbxassetid://18699497367",
+	DAILY_BONUS_PARTICLES = "rbxassetid://438224846"
+}
 
-local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
-local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
-local promptEnableEvent = Instance.new("RemoteEvent")
-promptEnableEvent.Name = "PromptEnableEvent"
-promptEnableEvent.Parent = game.ReplicatedStorage
-local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
-
+-- Services
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -23,24 +27,51 @@ local RunService = game:GetService("RunService")
 local BadgeService = game:GetService("BadgeService")
 local CoinSaver = require(game.ServerScriptService.CoinSaver)
 
+-- Model references
+local model = script.Parent
+local ball = model:WaitForChild("ball")
+local part = model:WaitForChild("CelebrationParticleEmitter")
+
+-- Events
+local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
+local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
+local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
+local promptEnableEvent = Instance.new("RemoteEvent")
+promptEnableEvent.Name = "PromptEnableEvent"
+promptEnableEvent.Parent = game.ReplicatedStorage
+
+-- Sounds
 local coinSound = Instance.new("Sound")
-coinSound.SoundId = "rbxassetid://607665037"
+coinSound.SoundId = ASSET_IDS.COIN_SOUND
 coinSound.Parent = model
 
 local clickBallSound = Instance.new("Sound")
-clickBallSound.SoundId = "rbxassetid://9125397583"
+clickBallSound.SoundId = ASSET_IDS.CLICK_BALL_SOUND
 clickBallSound.Parent = ball
 
+-- Constants
 local COIN_PACK_ID = 3258288474
 local VIP_PASS_ID = 1161085782
 local BADGE_ID_VISITOR = 4484079797052173
 local BADGE_ID_MASTER = 1768735404098629
 
+-- Ball animation constants
+local baseCFrame = ball.CFrame
+local hoverAmplitude = 1.5
+local hoverSpeed = 0.5
+local spinSpeed = 36
+
+-- State variables
+local isShaking = false
+local activeTweens = {} -- Track tweens for cleanup
+local forceDailyBonus = false
+
+-- Personalities
 local personalities = {
 	{color = Color3.fromRGB(255, 0, 0), type = "Angry", font = Enum.Font.Arcade, responses = {
 		"YES, YOU FOOL!", "NO, STOP WASTING MY TIME!", "MAYBE, IF YOU SHUT UP!",
-		"YES, NOW GO AWAY!", "NO, YOU DON’T DESERVE IT!", "ASK AGAIN, I DARE YOU!",
-		"YES, AND I HATE YOU FOR IT!", "NO, YOU’RE TOO DUMB!", "MAYBE, STOP BUGGING ME!",
+		"YES, NOW GO AWAY!", "NO, YOU DON'T DESERVE IT!", "ASK AGAIN, I DARE YOU!",
+		"YES, AND I HATE YOU FOR IT!", "NO, YOU'RE TOO DUMB!", "MAYBE, STOP BUGGING ME!",
 		"YES, GRRRR!"
 	}},
 	{color = Color3.fromRGB(0, 0, 255), type = "Mysterious", font = Enum.Font.Fantasy, responses = {
@@ -50,23 +81,36 @@ local personalities = {
 		"Destiny hums… yes."
 	}},
 	{color = Color3.fromRGB(255, 105, 180), type = "Sweet", font = Enum.Font.Cartoon, responses = {
-		"Oh sweetie, yes, so lovely!", "No, but you’re still amazing!", "Maybe, isn’t that fun?",
+		"Oh sweetie, yes, so lovely!", "No, but you're still amazing!", "Maybe, isn't that fun?",
 		"Yes, darling, perfect!", "No, cutie, try again!", "Maybe, you precious thing!",
-		"Yes, oh how wonderful!", "No, but you’re adorable!", "Maybe, so exciting!",
+		"Yes, oh how wonderful!", "No, but you're adorable!", "Maybe, so exciting!",
 		"Yes, my little star!"
 	}},
 	{color = Color3.fromRGB(0, 255, 0), type = "Sarcastic", font = Enum.Font.SourceSansBold, responses = {
-		"Yes, genius, obviously.", "No, shocker, huh?", "Maybe, if you’re lucky, dimwit.",
-		"Yes, you finally got one right!", "No, what a surprise.", "Maybe, don’t hold your breath.",
-		"Yes, wow, you’re a prodigy.", "No, try harder, loser.", "Maybe, who even cares?",
+		"Yes, genius, obviously.", "No, shocker, huh?", "Maybe, if you're lucky, dimwit.",
+		"Yes, you finally got one right!", "No, what a surprise.", "Maybe, don't hold your breath.",
+		"Yes, wow, you're a prodigy.", "No, try harder, loser.", "Maybe, who even cares?",
 		"Yes, clap for yourself, moron."
 	}}
 }
 
-local isShaking = false
-local activeTweens = {} -- Track tweens for cleanup
-local forceDailyBonus = false
+-- Proximity Prompt
+local prompt = Instance.new("ProximityPrompt")
+prompt.ActionText = "Ask the 8-Ball"
+prompt.HoldDuration = 0.5
+prompt.MaxActivationDistance = 30
+prompt.RequiresLineOfSight = false
+prompt.Enabled = true
+prompt.Parent = ball
 
+--[[
+	Core Game Functions
+	Functions that handle the main game mechanics
+]]
+
+--- Shakes the 8-ball and returns a random personality
+--- @param player Player The player who triggered the shake
+--- @return table The selected personality
 local function shakeBall(player)
 	isShaking = true
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
@@ -74,6 +118,8 @@ local function shakeBall(player)
 	local celebSound = model:WaitForChild("CelebrationSound")
 	local ballToon = model:WaitForChild("ballToon")
 	local originalCFrame = ball.CFrame
+	
+	-- Shake animation
 	for i = 1, 15 do
 		local rand = personalities[math.random(1, #personalities)]
 		ball.Color = rand.color
@@ -87,6 +133,8 @@ local function shakeBall(player)
 		tweenToon:Play()
 		wait(0.2 - (i * 0.01))
 	end
+	
+	-- Final personality selection
 	local final = personalities[math.random(1, #personalities)]
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
@@ -96,30 +144,34 @@ local function shakeBall(player)
 	activeTweens[finalTweenToon] = true
 	finalTweenBall:Play()
 	finalTweenToon:Play()
+	
+	-- Set personality and play effects
 	ball:SetAttribute("Personality", final.type)
 	if final.type == "Angry" then
-		celebParticles.Texture = "rbxassetid://16933997761"
+		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_ANGRY
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
-		celebSound.SoundId = "rbxassetid://186669531"
+		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_ANGRY
 	elseif final.type == "Mysterious" then
-		celebParticles.Texture = "rbxassetid://6700009498"
+		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_MYSTERIOUS
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 0, 255))
-		celebSound.SoundId = "rbxassetid://9116395089"
+		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_MYSTERIOUS
 	elseif final.type == "Sweet" then
-		celebParticles.Texture = "rbxassetid://5762409776"
+		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_SWEET
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(255, 105, 180))
-		celebSound.SoundId = "rbxassetid://111598396888819"
+		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_SWEET
 	elseif final.type == "Sarcastic" then
-		celebParticles.Texture = "rbxassetid://16908034492"
+		celebParticles.Texture = ASSET_IDS.CELEBRATION_PARTICLES_SARCASTIC
 		celebParticles.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0))
-		celebSound.SoundId = "rbxassetid://18204124897"
+		celebSound.SoundId = ASSET_IDS.CELEBRATION_SOUND_SARCASTIC
 	end
+	
 	celebParticles.Enabled = true
 	celebSound:Play()
 	wait(1)
 	celebParticles.Enabled = false
 	isShaking = false
-	-- Timeout to re-enable prompt if client doesn’t respond
+	
+	-- Timeout to re-enable prompt if client doesn't respond
 	spawn(function()
 		wait(5)
 		if not prompt.Enabled then
@@ -127,28 +179,23 @@ local function shakeBall(player)
 			print("Prompt re-enabled via timeout for " .. player.Name)
 		end
 	end)
+	
 	-- Cleanup tweens
 	for tween in pairs(activeTweens) do
 		activeTweens[tween] = nil
 	end
+	
 	return final
 end
 
--- Hover and Spin
-local baseCFrame = ball.CFrame
-local hoverAmplitude = 1.5
-local hoverSpeed = 0.5
-local spinSpeed = 36
-RunService.Heartbeat:Connect(function(dt)
-	if not isShaking then
-		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
-		local spinAngle = os.clock() * spinSpeed
-		local ballToon = model:WaitForChild("ballToon")
-		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
-		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
-	end
-end)
+--[[
+	Player Data Functions
+	Functions that handle player data loading, saving, and management
+]]
 
+--- Loads coins for a player with retry logic
+--- @param player Player The player to load coins for
+--- @return number The player's coin amount
 local function loadCoins(player)
 	local success, data
 	for i = 1, 3 do
@@ -162,15 +209,27 @@ local function loadCoins(player)
 	return success and data or 100
 end
 
+--[[
+	Reward Functions
+	Functions that handle badges, daily bonuses, and other rewards
+]]
+
+--- Awards a badge to a player with visual effects
+--- @param player Player The player to award the badge to
+--- @param badgeId number The ID of the badge to award
+--- @param badgeName string The display name of the badge
 local function awardBadge(player, badgeId, badgeName)
 	if not BadgeService:UserHasBadgeAsync(player.UserId, badgeId) then
 		BadgeService:AwardBadge(player.UserId, badgeId)
+		
+		-- Create badge notification
 		local billboard = Instance.new("BillboardGui")
 		billboard.Name = "BadgeGui"
 		billboard.Size = UDim2.new(0, 50, 0, 25)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.AlwaysOnTop = true
 		billboard.Parent = ball
+		
 		local textLabel = Instance.new("TextLabel")
 		textLabel.Size = UDim2.new(1, 0, 1, 0)
 		textLabel.BackgroundTransparency = 1
@@ -181,8 +240,10 @@ local function awardBadge(player, badgeId, badgeName)
 		textLabel.Font = Enum.Font.SourceSansBold
 		textLabel.TextScaled = true
 		textLabel.Parent = billboard
+		
+		-- Create celebration effects
 		local particles = Instance.new("ParticleEmitter")
-		particles.Texture = "rbxassetid://18699497367"
+		particles.Texture = ASSET_IDS.BADGE_PARTICLES
 		particles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
 		particles.Rate = 30
 		particles.Lifetime = NumberRange.new(0.5, 1)
@@ -190,10 +251,13 @@ local function awardBadge(player, badgeId, badgeName)
 		particles.SpreadAngle = Vector2.new(360, 360)
 		particles.Parent = ball
 		particles.Enabled = true
+		
 		local sound = Instance.new("Sound")
-		sound.SoundId = "rbxassetid://6648577112"
+		sound.SoundId = ASSET_IDS.BADGE_SOUND
 		sound.Parent = ball
 		sound:Play()
+		
+		-- Animate and cleanup
 		wait(1.5)
 		TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
 		wait(0.5)
@@ -204,9 +268,11 @@ local function awardBadge(player, badgeId, badgeName)
 	end
 end
 
+--- Shows the daily bonus animation and effects
+--- @param player Player The player who received the daily bonus
 local function showDailyBonus(player)
 	local bonusParticles = Instance.new("ParticleEmitter")
-	bonusParticles.Texture = "rbxassetid://438224846"
+	bonusParticles.Texture = ASSET_IDS.DAILY_BONUS_PARTICLES
 	bonusParticles.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
 	bonusParticles.Rate = 50
 	bonusParticles.Lifetime = NumberRange.new(0.5, 1)
@@ -214,17 +280,20 @@ local function showDailyBonus(player)
 	bonusParticles.SpreadAngle = Vector2.new(360, 360)
 	bonusParticles.Parent = ball
 	bonusParticles.Enabled = true
+	
 	local bonusSound = Instance.new("Sound")
-	bonusSound.SoundId = "rbxassetid://9125644905"
+	bonusSound.SoundId = ASSET_IDS.DAILY_BONUS_SOUND
 	bonusSound.Volume = 0.7
 	bonusSound.Parent = ball
 	bonusSound:Play()
+	
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "DailyBonusGui"
 	billboard.Size = UDim2.new(0, 50, 0, 25)
 	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = ball
+	
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.new(2, 0, 2, 0)
 	textLabel.BackgroundTransparency = 1
@@ -235,6 +304,7 @@ local function showDailyBonus(player)
 	textLabel.Font = Enum.Font.SourceSansBold
 	textLabel.TextScaled = true
 	textLabel.Parent = billboard
+	
 	wait(1.5)
 	local tween = TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1})
 	tween:Play()
@@ -245,9 +315,32 @@ local function showDailyBonus(player)
 	billboard:Destroy()
 end
 
+--[[
+	Animation Functions
+	Functions that handle visual effects and animations
+]]
+
+-- Hover and Spin animation
+RunService.Heartbeat:Connect(function(dt)
+	if not isShaking then
+		local hoverOffset = Vector3.new(0, math.sin(os.clock() * hoverSpeed) * hoverAmplitude, 0)
+		local spinAngle = os.clock() * spinSpeed
+		local ballToon = model:WaitForChild("ballToon")
+		ball.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+		ballToon.CFrame = baseCFrame * CFrame.Angles(0, math.rad(spinAngle), 0) + hoverOffset
+	end
+end)
+
+--[[
+	Event Handlers
+	Functions that handle various game events
+]]
+
+-- Player join/leave handlers
 Players.PlayerAdded:Connect(function(player)
 	local data
 	local success = false
+	
 	-- Retry CoinSaver.loadData
 	for i = 1, 3 do
 		success, data = pcall(function()
@@ -260,23 +353,30 @@ Players.PlayerAdded:Connect(function(player)
 		warn("Failed to load CoinSaver data for", player.Name, "on attempt", i)
 		wait(1)
 	end
+	
 	-- Fallback if load fails
 	if not success or not data or not data.Coins then
 		data = {Coins = 100, VIP = false}
 		warn("Using default data for", player.Name, ": Coins = 100")
 	end
+	
+	-- Initialize player data
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
 	coins.Value = data.Coins or 100
 	coins.Parent = player
+	
 	local vip = Instance.new("BoolValue")
 	vip.Name = "VIP"
 	vip.Value = MarketplaceService:UserOwnsGamePassAsync(player.UserId, VIP_PASS_ID) or data.VIP
 	vip.Parent = player
+	
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
 	lastClaim.Value = os.time()
 	lastClaim.Parent = player
+	
+	-- Initialize shake progress tracking
 	local shakeProgress = Instance.new("Folder")
 	shakeProgress.Name = "ShakeProgress"
 	shakeProgress.Parent = player
@@ -286,7 +386,8 @@ Players.PlayerAdded:Connect(function(player)
 		clicked.Value = false
 		clicked.Parent = shakeProgress
 	end
-	-- Check Welcome badge with retries
+	
+	-- Check and award Welcome badge
 	local badgeSuccess, hasBadge = false, false
 	for i = 1, 3 do
 		badgeSuccess, hasBadge = pcall(function()
@@ -299,6 +400,7 @@ Players.PlayerAdded:Connect(function(player)
 		warn("Failed to check Welcome badge for", player.Name, "on attempt", i)
 		wait(1)
 	end
+	
 	if badgeSuccess and not hasBadge then
 		awardBadge(player, BADGE_ID_VISITOR, "Welcome!")
 		print("Awarded Welcome badge to", player.Name)
@@ -309,6 +411,7 @@ Players.PlayerAdded:Connect(function(player)
 			print(player.Name, "already has Welcome badge")
 		end
 	end
+	
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 end)
 
@@ -324,12 +427,14 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
+-- Game close handler
 game:BindToClose(function()
 	for _, player in pairs(Players:GetPlayers()) do
 		CoinSaver.saveData(player)
 	end
 end)
 
+-- Proximity prompt handler
 prompt.Triggered:Connect(function(player)
 	if isShaking then
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
@@ -342,23 +447,21 @@ prompt.Triggered:Connect(function(player)
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
 
--- Debug prompt setup
-print("Prompt created:", prompt.Parent == ball and "on ball" or "not on ball")
-print("Prompt enabled:", prompt.Enabled)
-print("Ball position:", ball.Position)
-print("Ball size:", ball.Size)
-
+-- Remote event handlers
 shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 	if ballModel ~= model then return end
 	if isShaking then
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
 		return
 	end
+	
 	local coins = player:WaitForChild("Coins")
 	local vip = player:WaitForChild("VIP")
 	local lastClaim = player:WaitForChild("LastClaim")
 	local currentTime = os.time()
 	local dayInSeconds = 24 * 60 * 60
+	
+	-- Check and award daily bonus
 	if forceDailyBonus or (currentTime - lastClaim.Value >= dayInSeconds) then
 		coins.Value = coins.Value + 100
 		lastClaim.Value = currentTime
@@ -366,9 +469,13 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 		showDailyBonus(player)
 		print("Daily Bonus Triggered for " .. player.Name)
 	end
+	
+	-- Process shake
 	local final = shakeBall(player)
 	coins.Value = coins.Value + (vip.Value and 10 or 5)
 	coinSound:Play()
+	
+	-- Check for Master Shaker badge
 	local shakeProgress = player:WaitForChild("ShakeProgress")
 	local personalityClicked = shakeProgress:FindFirstChild(final.type)
 	if personalityClicked and not personalityClicked.Value then 
@@ -384,6 +491,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 			awardBadge(player, BADGE_ID_MASTER, "Master Shaker")
 		end
 	end
+	
 	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {
 		type = "Response",
@@ -435,6 +543,7 @@ buyVIPEvent.OnServerEvent:Connect(function(player)
 	MarketplaceService:PromptGamePassPurchase(player, VIP_PASS_ID)
 end)
 
+-- Marketplace handlers
 MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)
 	if gamePassId == VIP_PASS_ID and purchased then
 		local vip = player:WaitForChild("VIP")
@@ -456,3 +565,9 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	end
 	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
+
+-- Debug information
+print("Prompt created:", prompt.Parent == ball and "on ball" or "not on ball")
+print("Prompt enabled:", prompt.Enabled)
+print("Ball position:", ball.Position)
+print("Ball size:", ball.Size)
