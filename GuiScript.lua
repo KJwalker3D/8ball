@@ -77,7 +77,8 @@ local CONFIG = {
 		COIN_POPUP_DURATION = 2.5,
 		RESPONSE_DURATION = 2,
 		FADE_DURATION = 0.5,
-		CAMERA_ZOOM_DURATION = 16
+		CAMERA_ZOOM_DURATION = 6,
+		CAMERA_TWEEN_OUT_DURATION = 1
 	},
 	
 	-- Camera Settings
@@ -116,7 +117,8 @@ selectSound.Parent = playerGui
 -- State variables
 local currentBall = nil
 local selectedPersonality = "Random"
-local cameraTween = nil
+local cameraZoomTween = nil
+local cameraOutTween = nil
 local cameraConnections = {}
 local originalCameraState = nil
 
@@ -546,11 +548,46 @@ local function restoreCameraState()
 	end
 end
 
+
+-- Tween camera back to original position gently
+local function tweenOutCamera()
+	if not originalCameraState then return end
+	
+	-- Cancel any existing twwnes
+	if cameraZoomTween then
+		cameraZoomTween:Cancel()
+		cameraZoomTween = nil
+	end
+	if cameraOutTween then
+		cameraOutTween:Cancel()
+		cameraOutTween = nil
+	end
+	
+	-- Tween back to original CFrame
+	local tweenInfo = TweenInfo.new(
+		CONFIG.ANIMATION.CAMERA_TWEEN_OUT_DURATION,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.In
+	)
+	cameraOutTween = TweenService:Create(camera, tweenInfo, {CFrame = originalCameraState.CFrame})
+	cameraOutTween:Play()
+	
+	-- Restore camera type after tween
+	cameraOutTween.Completed:Connect(function()
+		restoreCameraState()
+		cameraOutTween = nil
+	end)
+end
+
 -- Clean up camera effect
 local function cleanupCameraEffect()
-	if cameraTween then
-		cameraTween:Cancel()
-		cameraTween = nil
+	if cameraZoomTween then
+		cameraZoomTween:Cancel()
+		cameraZoomTween = nil
+	end
+	if cameraOutTween then
+		cameraOutTween:Cancel()
+		cameraOutTween = nil
 	end
 	for _, connection in pairs(cameraConnections) do
 		if connection then 
@@ -558,7 +595,7 @@ local function cleanupCameraEffect()
 		end
 	end
 	cameraConnections = {}
-	restoreCameraState()
+--	restoreCameraState()
 end
 
 -- Start camera zoom effect
@@ -566,6 +603,8 @@ local function startCameraZoom(ballModel)
 	if not ballModel then return end
 	local ballPart = ballModel:FindFirstChild("ballToon")
 	if not ballPart then return end
+	
+	cleanupCameraEffect()
 	
 	-- Save current camera state
 	saveCameraState()
@@ -589,8 +628,8 @@ local function startCameraZoom(ballModel)
 	
 	-- Tween to target position
 	local tweenInfo = TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Linear)
-	cameraTween = TweenService:Create(camera, tweenInfo, {CFrame = targetCFrame})
-	cameraTween:Play()
+	cameraZoomTween = TweenService:Create(camera, tweenInfo, {CFrame = targetCFrame})
+	cameraZoomTween:Play()
 	
 	-- Detect player input to cancel
 	local inputConnection
@@ -599,6 +638,7 @@ local function startCameraZoom(ballModel)
 		   input.UserInputType == Enum.UserInputType.MouseMovement or 
 		   input.UserInputType == Enum.UserInputType.Keyboard then
 			cleanupCameraEffect()
+			tweenOutCamera()
 		end
 	end)
 	cameraConnections.input = inputConnection
@@ -606,8 +646,9 @@ local function startCameraZoom(ballModel)
 	-- Autorestore after duration
 	spawn(function()
 		wait(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION)
-		if cameraTween then
+		if cameraZoomTween then
 			cleanupCameraEffect()
+			tweenOutCamera()
 		end
 	end)
 end
