@@ -5,19 +5,163 @@ local Workspace = game:GetService("Workspace")
 print("FloatingBlockManager started")
 
 -- Configuration
-local SINK_DISTANCE = 2.5 -- Studs to sink
-local SINK_TIME = 1 -- Seconds to sink
-local POP_TIME = 1 -- Seconds to pop up
-local PARTICLE_COUNT = 50 -- Particles on pop
-local SOUND_FADE_DURATION = 1 -- Seconds for sound fade-out
-local TOUCH_ENDED_DEBOUNCE = 0.7 -- Seconds to verify player left
-local SHOW_TRIGGER_ZONES = false -- Toggle for debugging
+local CONFIG = {
+	-- Animation Settings
+	SINK_DISTANCE = 2.5, -- Studs to sink
+	SINK_TIME = 1, -- Seconds to sink
+	POP_TIME = 1, -- Seconds to pop up
+	SOUND_FADE_DURATION = 1, -- Seconds for sound fade-out
+	TOUCH_ENDED_DEBOUNCE = 0.7, -- Seconds to verify player left
+	
+	-- Visual Settings
+	PARTICLE_COUNT = 50, -- Particles on pop
+	SHOW_TRIGGER_ZONES = false, -- Toggle for debugging
+	HIGHLIGHT_TRANSPARENCY = 0.7,
+	HIGHLIGHT_COLOR = Color3.new(1, 0, 0),
+	
+	-- Sound Settings
+	SINK_SOUND_ID = "rbxassetid://9120858323",
+	SINK_SOUND_VOLUME = 0.5,
+	
+	-- Particle Settings
+	PARTICLE_TEXTURE = "rbxassetid://14500233914",
+	PARTICLE_LIFETIME = {min = 1, max = 2},
+	PARTICLE_SPEED = {min = 5, max = 10},
+	PARTICLE_SPREAD = Vector2.new(90, 90),
+	PARTICLE_SIZE = {
+		{time = 0, size = 1},
+		{time = 1, size = 2}
+	},
+	PARTICLE_TRANSPARENCY = {
+		{time = 0, transparency = 0},
+		{time = 0.5, transparency = 0.5},
+		{time = 1, transparency = 1}
+	},
+	PARTICLE_COLOR = Color3.fromRGB(255, 255, 255),
+	
+	-- Error Handling
+	MAX_SETUP_RETRIES = 3,
+	SETUP_RETRY_DELAY = 0.5
+}
 
 -- Track state
 local originalPositions = {} -- [part] = Y
 local blockStates = {} -- [blockModel] = {isSunk, isAnimating, touchingPlayers, touchConnections, highlight}
 local activeTweens = {} -- [part] = tween
 local taggedBlocks = {} -- Track valid blocks
+
+-- Utility Functions
+local function createSound(parent, soundId, volume)
+	local sound = Instance.new("Sound")
+	sound.Name = "SinkSound"
+	sound.SoundId = soundId
+	sound.Volume = volume
+	sound.Parent = parent
+	return sound
+end
+
+local function createParticleEmitter(parent, config)
+	local particles = Instance.new("ParticleEmitter")
+	particles.Name = "PopParticles"
+	particles.Texture = config.PARTICLE_TEXTURE
+	particles.Lifetime = NumberRange.new(config.PARTICLE_LIFETIME.min, config.PARTICLE_LIFETIME.max)
+	particles.Rate = 0
+	particles.Speed = NumberRange.new(config.PARTICLE_SPEED.min, config.PARTICLE_SPEED.max)
+	particles.SpreadAngle = config.PARTICLE_SPREAD
+	
+	-- Convert size sequence
+	local sizeKeypoints = {}
+	for _, point in ipairs(config.PARTICLE_SIZE) do
+		table.insert(sizeKeypoints, NumberSequenceKeypoint.new(point.time, point.size))
+	end
+	particles.Size = NumberSequence.new(sizeKeypoints)
+	
+	-- Convert transparency sequence
+	local transparencyKeypoints = {}
+	for _, point in ipairs(config.PARTICLE_TRANSPARENCY) do
+		table.insert(transparencyKeypoints, NumberSequenceKeypoint.new(point.time, point.transparency))
+	end
+	particles.Transparency = NumberSequence.new(transparencyKeypoints)
+	
+	particles.Color = ColorSequence.new(config.PARTICLE_COLOR)
+	particles.Enabled = false
+	particles.Parent = parent
+	return particles
+end
+
+local function createHighlight(blockModel)
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "TriggerZone"
+	highlight.Adornee = blockModel
+	highlight.FillColor = CONFIG.HIGHLIGHT_COLOR
+	highlight.FillTransparency = CONFIG.HIGHLIGHT_TRANSPARENCY
+	highlight.OutlineColor = CONFIG.HIGHLIGHT_COLOR
+	highlight.OutlineTransparency = 0
+	highlight.Parent = blockModel
+	return highlight
+end
+
+local function safeExecute(func, ...)
+	local success, result = pcall(func, ...)
+	if not success then
+		warn("Error in safeExecute:", result)
+		return nil
+	end
+	return result
+end
+
+local function cleanupBlock(blockModel)
+	if not blockModel then return end
+	
+	-- Cleanup connections
+	if blockStates[blockModel] then
+		for _, conn in ipairs(blockStates[blockModel].touchConnections) do
+			conn:Disconnect()
+		end
+		
+		-- Cleanup highlight
+		if blockStates[blockModel].highlight then
+			blockStates[blockModel].highlight:Destroy()
+		end
+	end
+	
+	-- Cleanup sound and particles
+	if blockModel.PrimaryPart then
+		local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
+		if sound then
+			sound:Destroy()
+		end
+		
+		local attachment = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
+		if attachment then
+			attachment:Destroy()
+		end
+	end
+	
+	-- Cleanup tweens
+	for _, part in ipairs(blockModel:GetChildren()) do
+		if part:IsA("BasePart") and activeTweens[part] then
+			activeTweens[part]:Cancel()
+			activeTweens[part] = nil
+		end
+	end
+	
+	-- Cleanup state
+	blockStates[blockModel] = nil
+	for _, part in ipairs(blockModel:GetChildren()) do
+		if part:IsA("BasePart") then
+			originalPositions[part] = nil
+		end
+	end
+	
+	-- Remove from tagged blocks
+	for i, taggedBlock in ipairs(taggedBlocks) do
+		if taggedBlock == blockModel then
+			table.remove(taggedBlocks, i)
+			break
+		end
+	end
+end
 
 -- Animate block
 local function animateBlock(blockModel, targetOffsetY, force)
@@ -58,7 +202,7 @@ local function animateBlock(blockModel, targetOffsetY, force)
 		end
 
 		local tweenInfo = TweenInfo.new(
-			targetOffsetY < 0 and SINK_TIME or POP_TIME,
+			targetOffsetY < 0 and CONFIG.SINK_TIME or CONFIG.POP_TIME,
 			Enum.EasingStyle.Sine,
 			Enum.EasingDirection.InOut
 		)
@@ -109,8 +253,8 @@ local function popBlock(blockModel)
 	if blockModel.PrimaryPart then
 		local particles = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
 		if particles and particles:FindFirstChild("PopParticles") then
-			particles.PopParticles:Emit(PARTICLE_COUNT)
-			print("Emitted", PARTICLE_COUNT, "particles for", blockModel.Name)
+			particles.PopParticles:Emit(CONFIG.PARTICLE_COUNT)
+			print("Emitted", CONFIG.PARTICLE_COUNT, "particles for", blockModel.Name)
 		end
 	end
 end
@@ -123,213 +267,200 @@ local function setupBlock(blockModel)
 		return false
 	end
 
-	local success, err = pcall(function()
-		if not blockModel:IsA("Model") then
-			warn("setupBlock: Invalid type for", blockModel.Name, "- expected Model, got", blockModel.ClassName)
-			return false
-		end
-		
-		print("Setting up block:", blockModel.Name)
-
-		-- Set PrimaryPart
-		if not blockModel.PrimaryPart then
-			for _, part in ipairs(blockModel:GetChildren()) do
-				if part:IsA("BasePart") then
-					blockModel.PrimaryPart = part
-					print("Auto-set PrimaryPart for", blockModel.Name, "to", part.Name)
-					break
-				end
+	local retries = 0
+	while retries < CONFIG.MAX_SETUP_RETRIES do
+		local success, err = pcall(function()
+			if not blockModel:IsA("Model") then
+				warn("setupBlock: Invalid type for", blockModel.Name, "- expected Model, got", blockModel.ClassName)
+				return false
 			end
-		end
-		if not blockModel.PrimaryPart then
-			warn("setupBlock: No BasePart found for", blockModel.Name)
-			return false
-		end
+			
+			print("Setting up block:", blockModel.Name)
 
-		-- Validate bounding box
-		local cframe, size = blockModel:GetBoundingBox()
-		if not cframe or not size or size.X < 0.1 or size.Y < 0.1 or size.Z < 0.1 then
-			warn("setupBlock: Invalid bounding box for", blockModel.Name, "- size:", size or "nil")
-			return false
-		end
-		local partCount = 0
-		local partsList = {}
-		for _, p in ipairs(blockModel:GetChildren()) do
-			if p:IsA("BasePart") then
-				partCount = partCount + 1
-				table.insert(partsList, p.Name)
-			end
-		end
-		print("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, "parts:", partCount, "names:", table.concat(partsList, ", "), "PrimaryPart Y:", blockModel.PrimaryPart.Position.Y, "CanCollide:", blockModel.PrimaryPart.CanCollide)
-
-		-- Anchor and clean parts
-		for _, part in ipairs(blockModel:GetChildren()) do
-			if part:IsA("BasePart") then
-				part.Anchored = true
-				part:BreakJoints()
-				local joints = part:GetJoints()
-				for _, joint in ipairs(joints) do
-					if joint:IsA("Constraint") or joint:IsA("Weld") then
-						print("Removing joint", joint.Name, "from", part.Name)
-						joint:Destroy()
+			-- Set PrimaryPart
+			if not blockModel.PrimaryPart then
+				for _, part in ipairs(blockModel:GetChildren()) do
+					if part:IsA("BasePart") then
+						blockModel.PrimaryPart = part
+						print("Auto-set PrimaryPart for", blockModel.Name, "to", part.Name)
+						break
 					end
 				end
 			end
-		end
+			if not blockModel.PrimaryPart then
+				warn("setupBlock: No BasePart found for", blockModel.Name)
+				return false
+			end
 
-		-- Initialize state
-		blockStates[blockModel] = {
-			isSunk = false,
-			isAnimating = false,
-			touchingPlayers = {},
-			touchConnections = {},
-			highlight = nil
-		}
+			-- Validate bounding box
+			local cframe, size = blockModel:GetBoundingBox()
+			if not cframe or not size or size.X < 0.1 or size.Y < 0.1 or size.Z < 0.1 then
+				warn("setupBlock: Invalid bounding box for", blockModel.Name, "- size:", size or "nil")
+				return false
+			end
+			local partCount = 0
+			local partsList = {}
+			for _, p in ipairs(blockModel:GetChildren()) do
+				if p:IsA("BasePart") then
+					partCount = partCount + 1
+					table.insert(partsList, p.Name)
+				end
+			end
+			print("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, "parts:", partCount, "names:", table.concat(partsList, ", "), "PrimaryPart Y:", blockModel.PrimaryPart.Position.Y, "CanCollide:", blockModel.PrimaryPart.CanCollide)
 
-		-- Connect touch events to PrimaryPart
-		local primaryPart = blockModel.PrimaryPart
-		local touchConn = primaryPart.Touched:Connect(function(hit)
-			local player = Players:GetPlayerFromCharacter(hit.Parent)
-			if player and hit.Name == "HumanoidRootPart" then
-				local posY = hit.Position.Y
-				if not blockStates[blockModel].touchingPlayers[player] then
-					blockStates[blockModel].touchingPlayers[player] = true
-					local count = 0
-					for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
-					print("Player", player.Name, "touched", blockModel.Name, "| touchingPlayers:", count, "player Y:", posY, "block Y:", primaryPart.Position.Y)
-					if not blockStates[blockModel].isSunk then
-						print("Sinking", blockModel.Name)
-						blockStates[blockModel].isSunk = true
-						animateBlock(blockModel, -SINK_DISTANCE, true)
-						if blockModel.PrimaryPart then
-							local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
-							if sound then
-								sound:Stop()
-								sound.Volume = 0.5
-								sound:Play()
-								local fadeTween = TweenService:Create(
-									sound,
-									TweenInfo.new(SOUND_FADE_DURATION, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-									{Volume = 0}
-								)
-								fadeTween:Play()
-								fadeTween.Completed:Connect(function()
-									sound:Stop()
-									sound.Volume = 0.5
-									print("Sound faded out for", blockModel.Name)
-								end)
-							end
+			-- Anchor and clean parts
+			for _, part in ipairs(blockModel:GetChildren()) do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+					part:BreakJoints()
+					local joints = part:GetJoints()
+					for _, joint in ipairs(joints) do
+						if joint:IsA("Constraint") or joint:IsA("Weld") then
+							print("Removing joint", joint.Name, "from", part.Name)
+							joint:Destroy()
 						end
 					end
 				end
 			end
-		end)
-		local touchEndedConn = primaryPart.TouchEnded:Connect(function(hit)
-			local player = Players:GetPlayerFromCharacter(hit.Parent)
-			if player and hit.Name == "HumanoidRootPart" then
-				task.wait(TOUCH_ENDED_DEBOUNCE)
-				if blockStates[blockModel] and blockStates[blockModel].touchingPlayers[player] then
-					blockStates[blockModel].touchingPlayers[player] = nil
-					local count = 0
-					for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
-					print("Player", player.Name, "left", blockModel.Name, "| touchingPlayers:", count, "player Y:", hit.Position.Y, "block Y:", primaryPart.Position.Y)
-					if count == 0 and blockStates[blockModel].isSunk then
-						popBlock(blockModel)
+
+			-- Initialize state
+			blockStates[blockModel] = {
+				isSunk = false,
+				isAnimating = false,
+				touchingPlayers = {},
+				touchConnections = {},
+				highlight = nil
+			}
+
+			-- Connect touch events to PrimaryPart
+			local primaryPart = blockModel.PrimaryPart
+			local touchConn = primaryPart.Touched:Connect(function(hit)
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+				if player and hit.Name == "HumanoidRootPart" then
+					local posY = hit.Position.Y
+					if not blockStates[blockModel].touchingPlayers[player] then
+						blockStates[blockModel].touchingPlayers[player] = true
+						local count = 0
+						for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
+						print("Player", player.Name, "touched", blockModel.Name, "| touchingPlayers:", count, "player Y:", posY, "block Y:", primaryPart.Position.Y)
+						if not blockStates[blockModel].isSunk then
+							print("Sinking", blockModel.Name)
+							blockStates[blockModel].isSunk = true
+							animateBlock(blockModel, -CONFIG.SINK_DISTANCE, true)
+							if blockModel.PrimaryPart then
+								local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
+								if sound then
+									sound:Stop()
+									sound.Volume = CONFIG.SINK_SOUND_VOLUME
+									sound:Play()
+									local fadeTween = TweenService:Create(
+										sound,
+										TweenInfo.new(CONFIG.SOUND_FADE_DURATION, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+										{Volume = 0}
+									)
+									fadeTween:Play()
+									fadeTween.Completed:Connect(function()
+										sound:Stop()
+										sound.Volume = CONFIG.SINK_SOUND_VOLUME
+										print("Sound faded out for", blockModel.Name)
+									end)
+								end
+							end
+						end
 					end
 				end
-			end
-		end)
-		table.insert(blockStates[blockModel].touchConnections, touchConn)
-		table.insert(blockStates[blockModel].touchConnections, touchEndedConn)
+			end)
+			local touchEndedConn = primaryPart.TouchEnded:Connect(function(hit)
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+				if player and hit.Name == "HumanoidRootPart" then
+					task.wait(CONFIG.TOUCH_ENDED_DEBOUNCE)
+					if blockStates[blockModel] and blockStates[blockModel].touchingPlayers[player] then
+						blockStates[blockModel].touchingPlayers[player] = nil
+						local count = 0
+						for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
+						print("Player", player.Name, "left", blockModel.Name, "| touchingPlayers:", count, "player Y:", hit.Position.Y, "block Y:", primaryPart.Position.Y)
+						if count == 0 and blockStates[blockModel].isSunk then
+							popBlock(blockModel)
+						end
+					end
+				end
+			end)
+			table.insert(blockStates[blockModel].touchConnections, touchConn)
+			table.insert(blockStates[blockModel].touchConnections, touchEndedConn)
 
-		-- Add effects
-		if blockModel.PrimaryPart then
-			if not blockModel.PrimaryPart:FindFirstChild("SinkSound") then
-				local sound = Instance.new("Sound")
-				sound.Name = "SinkSound"
-				sound.SoundId = "rbxassetid://9120858323"
-				sound.Volume = 0.5
-				sound.Parent = blockModel.PrimaryPart
-				print("Added SinkSound to", blockModel.Name)
-			end
-			if not blockModel.PrimaryPart:FindFirstChild("ParticleAttachment") then
-				local attachment = Instance.new("Attachment")
-				attachment.Name = "ParticleAttachment"
-				attachment.Position = Vector3.new(0, size.Y/2, 0)
-				attachment.Parent = blockModel.PrimaryPart
-				local particles = Instance.new("ParticleEmitter")
-				particles.Name = "PopParticles"
-				particles.Texture = "rbxassetid://14500233914"
-				particles.Lifetime = NumberRange.new(1, 2)
-				particles.Rate = 0
-				particles.Speed = NumberRange.new(5, 10)
-				particles.SpreadAngle = Vector2.new(90, 90)
-				particles.Size = NumberSequence.new({
-					NumberSequenceKeypoint.new(0, 1),
-					NumberSequenceKeypoint.new(1, 2)
-				})
-				particles.Transparency = NumberSequence.new({
-					NumberSequenceKeypoint.new(0, 0),
-					NumberSequenceKeypoint.new(0.5, 0.5),
-					NumberSequenceKeypoint.new(1, 1)
-				})
-				particles.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
-				particles.Enabled = false
-				particles.Parent = attachment
-				print("Added PopParticles to", blockModel.Name, "at Y =", size.Y/2)
-			end
-		end
-
-		-- Trigger zone with Highlight
-		if SHOW_TRIGGER_ZONES then
-			local highlight = Instance.new("Highlight")
-			highlight.Name = "TriggerZone"
-			highlight.Adornee = blockModel
-			highlight.FillColor = Color3.new(1, 0, 0)
-			highlight.FillTransparency = 0.7
-			highlight.OutlineColor = Color3.new(1, 0, 0)
-			highlight.OutlineTransparency = 0
-			highlight.Parent = blockModel
-			blockStates[blockModel].highlight = highlight
-			print("Added Highlight zone for", blockModel.Name)
-		end
-
-		return true
-	end)
-	
-	if not success then
-		warn("setupBlock: Error setting up", blockModel.Name, ":", err)
-		-- Cleanup if setup failed
-		if blockStates[blockModel] then
-			-- Cleanup connections
-			for _, conn in ipairs(blockStates[blockModel].touchConnections) do
-				conn:Disconnect()
-			end
-			
-			-- Cleanup highlight
-			if blockStates[blockModel].highlight then
-				blockStates[blockModel].highlight:Destroy()
-			end
-			
-			-- Cleanup sound and particles
+			-- Add effects
 			if blockModel.PrimaryPart then
-				local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
-				if sound then
-					sound:Destroy()
+				if not blockModel.PrimaryPart:FindFirstChild("SinkSound") then
+					safeExecute(createSound, blockModel.PrimaryPart, CONFIG.SINK_SOUND_ID, CONFIG.SINK_SOUND_VOLUME)
+					print("Added SinkSound to", blockModel.Name)
 				end
-				
-				local attachment = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
-				if attachment then
-					attachment:Destroy()
+				if not blockModel.PrimaryPart:FindFirstChild("ParticleAttachment") then
+					local attachment = Instance.new("Attachment")
+					attachment.Name = "ParticleAttachment"
+					attachment.Position = Vector3.new(0, size.Y/2, 0)
+					attachment.Parent = blockModel.PrimaryPart
+					safeExecute(createParticleEmitter, attachment, CONFIG)
+					print("Added PopParticles to", blockModel.Name, "at Y =", size.Y/2)
 				end
 			end
-			
-			blockStates[blockModel] = nil
+
+			-- Trigger zone with Highlight
+			if CONFIG.SHOW_TRIGGER_ZONES then
+				blockStates[blockModel].highlight = safeExecute(createHighlight, blockModel)
+				print("Added Highlight zone for", blockModel.Name)
+			end
+
+			return true
+		end)
+		
+		if success then
+			return true
 		end
-		return false
+		
+		warn("setupBlock: Error setting up", blockModel.Name, ":", err)
+		retries = retries + 1
+		if retries < CONFIG.MAX_SETUP_RETRIES then
+			task.wait(CONFIG.SETUP_RETRY_DELAY)
+		end
 	end
 	
-	return true
+	-- Cleanup if all retries failed
+	if blockStates[blockModel] then
+		-- Cleanup connections
+		for _, conn in ipairs(blockStates[blockModel].touchConnections) do
+			conn:Disconnect()
+		end
+		
+		-- Cleanup highlight
+		if blockStates[blockModel].highlight then
+			blockStates[blockModel].highlight:Destroy()
+		end
+		
+		-- Cleanup sound and particles
+		if blockModel.PrimaryPart then
+			local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
+			if sound then
+				sound:Destroy()
+			end
+			
+			local attachment = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
+			if attachment then
+				attachment:Destroy()
+			end
+		end
+		
+		-- Cleanup tweens
+		for _, part in ipairs(blockModel:GetChildren()) do
+			if part:IsA("BasePart") and activeTweens[part] then
+				activeTweens[part]:Cancel()
+				activeTweens[part] = nil
+			end
+		end
+		
+		blockStates[blockModel] = nil
+	end
+	
+	return false
 end
 
 -- Server: Setup blocks
@@ -367,30 +498,5 @@ end)
 -- Cleanup
 blocksFolder.ChildRemoved:Connect(function(blockModel)
 	print("Block removed:", blockModel.Name)
-	if blockStates[blockModel] then
-		for _, conn in ipairs(blockStates[blockModel].touchConnections) do
-			conn:Disconnect()
-		end
-		for _, part in ipairs(blockModel:GetChildren()) do
-			if part:IsA("BasePart") and activeTweens[part] then
-				activeTweens[part]:Cancel()
-				activeTweens[part] = nil
-			end
-		end
-		if blockStates[blockModel].highlight then
-			blockStates[blockModel].highlight:Destroy()
-		end
-		blockStates[blockModel] = nil
-	end
-	for i, taggedBlock in ipairs(taggedBlocks) do
-		if taggedBlock == blockModel then
-			table.remove(taggedBlocks, i)
-			break
-		end
-	end
-	for _, part in ipairs(blockModel:GetChildren()) do
-		if part:IsA("BasePart") then
-			originalPositions[part] = nil
-		end
-	end
+	cleanupBlock(blockModel)
 end)
