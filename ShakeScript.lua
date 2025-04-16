@@ -250,10 +250,11 @@ local function shakeBall(player, selectedPersonality)
 		final = personalities[math.random(1, #personalities)] -- Fallback to random if invalid
 	end
 
-	-- Shake animation
+	-- Shake animation with cycling colors
 	for i = 1, CONFIG.SHAKE_DURATION do
-		ball.Color = final.color
-		if particles then particles.Color = ColorSequence.new(final.color) end
+		local rand = personalities[math.random(1, #personalities)] -- Pick a random personality for color
+		ball.Color = rand.color
+		if particles then particles.Color = ColorSequence.new(rand.color) end
 
 		local offset = Vector3.new(
 			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
@@ -271,7 +272,7 @@ local function shakeBall(player, selectedPersonality)
 		wait(CONFIG.SHAKE_INTERVAL - (i * CONFIG.SHAKE_INTERVAL_DECREASE))
 	end
 
-	-- Final position
+	-- Final position with selected personality's color
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 

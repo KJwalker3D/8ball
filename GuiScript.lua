@@ -15,6 +15,12 @@ local clickSound = Instance.new("Sound")
 clickSound.SoundId = "rbxassetid://9125397583"
 clickSound.Parent = playerGui
 
+-- Selection sound for personality buttons
+local selectSound = Instance.new("Sound")
+selectSound.SoundId = "rbxassetid://9125644905" -- Using existing DAILY_BONUS_SOUND for a pleasant chime
+selectSound.Volume = 0.5
+selectSound.Parent = playerGui
+
 local currentBall = nil
 
 -- Coin Counter
@@ -149,6 +155,13 @@ for i, personality in ipairs(personalities) do
 	buttonGradient.Rotation = 90
 	buttonGradient.Parent = button
 
+	-- Add UIStroke for persistent outline on selection
+	local buttonStroke = Instance.new("UIStroke")
+	buttonStroke.Thickness = 2
+	buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+	buttonStroke.Transparency = 1 -- Hidden by default
+	buttonStroke.Parent = button
+
 	-- Add hover effect
 	addHoverEffect(button)
 
@@ -157,21 +170,38 @@ for i, personality in ipairs(personalities) do
 
 	-- Handle selection
 	button.MouseButton1Click:Connect(function()
-		clickSound:Play()
+		selectSound:Play()
 		selectedPersonality = personality.name
+
+		-- Scale animation for click feedback
+		local originalSize = button.Size
+		TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, originalSize.X.Offset + 10, 0, originalSize.Y.Offset + 10)
+		}):Play()
+		wait(0.1)
+		TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Size = originalSize
+		}):Play()
 
 		-- Update all buttons' appearance
 		for name, btn in pairs(personalityButtons) do
 			if name == selectedPersonality then
 				btn.BackgroundTransparency = 0
 				btn.TextTransparency = 0
+				btn:FindFirstChild("UIStroke").Transparency = 0 -- Show outline
 			else
-				btn.BackgroundTransparency = 0.3
-				btn.TextTransparency = 0.3
+				btn.BackgroundTransparency = 0.5 -- More pronounced transparency
+				btn.TextTransparency = 0.5
+				btn:FindFirstChild("UIStroke").Transparency = 1 -- Hide outline
 			end
 		end
 	end)
 end
+
+-- Set initial state for Random button
+personalityButtons["Random"].BackgroundTransparency = 0
+personalityButtons["Random"].TextTransparency = 0
+personalityButtons["Random"]:FindFirstChild("UIStroke").Transparency = 0
 
 -- Shake Button
 local shakeButton = Instance.new("TextButton")
