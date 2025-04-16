@@ -1,6 +1,6 @@
 --[[
-	Configuration
-	All game settings and constants in one place
+    Configuration
+    All game settings and constants in one place
 ]]
 local CONFIG = {
 	-- Game Settings
@@ -140,8 +140,8 @@ prompt.Enabled = true
 prompt.Parent = ball
 
 --[[
-	Utility Functions
-	Helper functions for common operations
+    Utility Functions
+    Helper functions for common operations
 ]]
 
 --- Creates a new sound instance with the given ID
@@ -218,14 +218,15 @@ local function safeExecute(func, errorMessage)
 end
 
 --[[
-	Core Game Functions
-	Functions that handle the main game mechanics
+    Core Game Functions
+    Functions that handle the main game mechanics
 ]]
 
---- Shakes the 8-ball and returns a random personality
+--- Shakes the 8-ball and returns the selected personality
 --- @param player Player The player who triggered the shake
+--- @param selectedPersonality string The chosen personality type or "Random"
 --- @return table The selected personality
-local function shakeBall(player)
+local function shakeBall(player, selectedPersonality)
 	isShaking = true
 	local particles = ball:FindFirstChild("ParticleEmitterBallSparkles")
 	local celebParticles = part:FindFirstChild("CelebrationParticles")
@@ -233,11 +234,26 @@ local function shakeBall(player)
 	local ballToon = model:WaitForChild("ballToon")
 	local originalCFrame = ball.CFrame
 
+	-- Select final personality
+	local final
+	if selectedPersonality == "Random" then
+		final = personalities[math.random(1, #personalities)]
+	else
+		for _, personality in pairs(personalities) do
+			if personality.type == selectedPersonality then
+				final = personality
+				break
+			end
+		end
+	end
+	if not final then
+		final = personalities[math.random(1, #personalities)] -- Fallback to random if invalid
+	end
+
 	-- Shake animation
 	for i = 1, CONFIG.SHAKE_DURATION do
-		local rand = personalities[math.random(1, #personalities)]
-		ball.Color = rand.color
-		if particles then particles.Color = ColorSequence.new(rand.color) end
+		ball.Color = final.color
+		if particles then particles.Color = ColorSequence.new(final.color) end
 
 		local offset = Vector3.new(
 			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
@@ -255,8 +271,7 @@ local function shakeBall(player)
 		wait(CONFIG.SHAKE_INTERVAL - (i * CONFIG.SHAKE_INTERVAL_DECREASE))
 	end
 
-	-- Final personality selection
-	local final = personalities[math.random(1, #personalities)]
+	-- Final position
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 
@@ -317,8 +332,8 @@ local function shakeBall(player)
 end
 
 --[[
-	Player Data Functions
-	Functions that handle player data loading, saving, and management
+    Player Data Functions
+    Functions that handle player data loading, saving, and management
 ]]
 
 --- Loads coins for a player with retry logic
@@ -338,8 +353,8 @@ local function loadCoins(player)
 end
 
 --[[
-	Reward Functions
-	Functions that handle badges, daily bonuses, and other rewards
+    Reward Functions
+    Functions that handle badges, daily bonuses, and other rewards
 ]]
 
 --- Awards a badge to a player with visual effects
@@ -398,8 +413,8 @@ local function showDailyBonus(player)
 end
 
 --[[
-	Animation Functions
-	Functions that handle visual effects and animations
+    Animation Functions
+    Functions that handle visual effects and animations
 ]]
 
 -- Hover and Spin animation
@@ -414,8 +429,8 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 --[[
-	Event Handlers
-	Functions that handle various game events
+    Event Handlers
+    Functions that handle various game events
 ]]
 
 -- Player join/leave handlers
@@ -530,7 +545,7 @@ prompt.Triggered:Connect(function(player)
 end)
 
 -- Remote event handlers
-shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
+shakeEvent.OnServerEvent:Connect(function(player, ballModel, question, selectedPersonality)
 	if ballModel ~= model then return end
 	if isShaking then
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
@@ -552,8 +567,8 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 		print("Daily Bonus Triggered for " .. player.Name)
 	end
 
-	-- Process shake
-	local final = shakeBall(player)
+	-- Process shake with selected personality
+	local final = shakeBall(player, selectedPersonality)
 	coins.Value = coins.Value + (vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL)
 	coinSound:Play()
 
@@ -589,8 +604,6 @@ promptEnableEvent.OnServerEvent:Connect(function(player, ballModel)
 	prompt.Enabled = true
 	print("Prompt re-enabled for " .. player.Name .. " after client fade")
 end)
-
-
 
 buyVIPEvent.OnServerEvent:Connect(function(player)
 	MarketplaceService:PromptGamePassPurchase(player, VIP_PASS_ID)

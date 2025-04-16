@@ -1,5 +1,4 @@
 local COIN_PACK_ID = 3258288474
-
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
@@ -245,7 +244,6 @@ coinPopup.TextColor3 = Color3.fromRGB(255, 215, 0)
 coinPopup.Font = Enum.Font.SourceSansBold
 coinPopup.Parent = coinPopupFrame
 
-
 -- Shop Frame
 local shopFrame = Instance.new("Frame")
 shopFrame.Size = UDim2.new(0, 480, 0, 360)
@@ -272,7 +270,6 @@ shopTitle.TextScaled = true
 shopTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 shopTitle.Font = Enum.Font.SourceSansBold
 shopTitle.Parent = shopFrame
-
 
 local coinPackButton = Instance.new("TextButton")
 coinPackButton.Size = UDim2.new(0, 140, 0, 60)
@@ -332,7 +329,7 @@ shakeButton.MouseButton1Click:Connect(function()
 		clickSound:Play()
 		questionFrame.Visible = false
 		currentBall.ShakeSound:Play()
-		shakeEvent:FireServer(currentBall)
+		shakeEvent:FireServer(currentBall, questionBox.Text, selectedPersonality)
 	end
 end)
 
@@ -342,8 +339,6 @@ shopButton.MouseButton1Click:Connect(function()
 	questionFrame.Visible = false
 	responseFrame.Visible = false
 end)
-
-
 
 coinPackButton.MouseButton1Click:Connect(function()
 	clickSound:Play()
@@ -378,7 +373,7 @@ local function showResponse(data, coins, coinAmount)
 	responseFrame.Visible = false
 	responseFrame.BackgroundTransparency = 0.2
 	responseFrame.Position = UDim2.new(0.5, -200, 0, 100)
-	responseLabel.Text = data.personality.responses[math.random(1, #data.personality.responses)]
+	responseLabel.Text = data.response
 	responseLabel.TextColor3 = data.personality.color
 	responseLabel.Font = data.personality.font
 	coinLabel.Text = "Coins: " .. coins
@@ -389,6 +384,7 @@ local function showResponse(data, coins, coinAmount)
 	TweenService:Create(responseFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0, 80)}):Play()
 	wait(0.5)
 	responseFrame.Visible = false
+	game.ReplicatedStorage:WaitForChild("PromptEnableEvent"):FireServer(data.ball)
 end
 
 shakeEvent.OnClientEvent:Connect(function(data, coins)
@@ -400,6 +396,7 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
 		showResponse(data, coins, player:WaitForChild("VIP").Value and 10 or 5)
-
+	elseif data.type == "Busy" then
+		questionFrame.Visible = false
 	end
 end)
