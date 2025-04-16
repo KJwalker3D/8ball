@@ -13,6 +13,20 @@ local CONFIG = {
 	SOUND_FADE_DURATION = 1, -- Seconds for sound fade-out
 	TOUCH_ENDED_DEBOUNCE = 0.7, -- Seconds to verify player left
 	
+	-- Animation Easing
+	SINK_EASING_STYLE = Enum.EasingStyle.Quad,
+	SINK_EASING_DIRECTION = Enum.EasingDirection.Out,
+	POP_EASING_STYLE = Enum.EasingStyle.Back,
+	POP_EASING_DIRECTION = Enum.EasingDirection.Out,
+	
+	-- Performance Settings
+	MAX_CONCURRENT_TWEENS = 50, -- Increased from 10 to 50
+	TWEEN_CLEANUP_INTERVAL = 30, -- Seconds between cleanup of old tweens
+	DEBUG_MODE = false, -- Enable/disable debug prints
+	
+	-- Touch Settings
+	TOUCH_DEBOUNCE_TIME = 0.05, -- Reduced from 0.1 to 0.05 seconds
+	
 	-- Visual Settings
 	PARTICLE_COUNT = 50, -- Particles on pop
 	SHOW_TRIGGER_ZONES = false, -- Toggle for debugging
@@ -49,6 +63,41 @@ local originalPositions = {} -- [part] = Y
 local blockStates = {} -- [blockModel] = {isSunk, isAnimating, touchingPlayers, touchConnections, highlight}
 local activeTweens = {} -- [part] = tween
 local taggedBlocks = {} -- Track valid blocks
+local tweenCount = 0 -- Track number of active tweens
+
+-- Performance monitoring
+local function debugPrint(...)
+	if CONFIG.DEBUG_MODE then
+		print(...)
+	end
+end
+
+-- Tween management
+local function cleanupOldTweens()
+	local currentTime = tick()
+	local removedCount = 0
+	
+	for part, tween in pairs(activeTweens) do
+		if not part:IsDescendantOf(game) then
+			tween:Cancel()
+			activeTweens[part] = nil
+			tweenCount = tweenCount - 1
+			removedCount = removedCount + 1
+		end
+	end
+	
+	if removedCount > 0 then
+		debugPrint("Cleaned up", removedCount, "old tweens")
+	end
+end
+
+-- Start periodic cleanup
+task.spawn(function()
+	while true do
+		task.wait(CONFIG.TWEEN_CLEANUP_INTERVAL)
+		cleanupOldTweens()
+	end
+end)
 
 -- Utility Functions
 local function createSound(parent, soundId, volume)
@@ -166,11 +215,19 @@ end
 -- Animate block
 local function animateBlock(blockModel, targetOffsetY, force)
 	if blockStates[blockModel].isAnimating and not force then
-		print("Skipping animation for", blockModel.Name, "- already animating")
+		debugPrint("Skipping animation for", blockModel.Name, "- already animating")
 		return
 	end
+	
+	-- Check tween limit
+	if tweenCount >= CONFIG.MAX_CONCURRENT_TWEENS then
+		debugPrint("Tween limit reached, waiting for cleanup")
+		task.wait(0.1)
+		return animateBlock(blockModel, targetOffsetY, force)
+	end
+	
 	blockStates[blockModel].isAnimating = true
-	print("Animating", blockModel.Name, "to offset Y =", targetOffsetY)
+	debugPrint("Animating", blockModel.Name, "to offset Y =", targetOffsetY)
 
 	local parts = {}
 	for _, part in ipairs(blockModel:GetChildren()) do
@@ -178,48 +235,62 @@ local function animateBlock(blockModel, targetOffsetY, force)
 			table.insert(parts, part)
 		end
 	end
+	
 	if #parts == 0 then
-		print("No BaseParts in", blockModel.Name, "- aborting animation")
+		debugPrint("No BaseParts in", blockModel.Name, "- aborting animation")
 		blockStates[blockModel].isAnimating = nil
 		return
 	end
+	
 	if #parts ~= 2 then
-		print("Warning:", blockModel.Name, "has", #parts, "BaseParts, expected 2")
+		debugPrint("Warning:", blockModel.Name, "has", #parts, "BaseParts, expected 2")
 	end
 
 	for _, part in ipairs(parts) do
 		if not originalPositions[part] then
 			originalPositions[part] = part.Position.Y
-			print("Stored original Y =", originalPositions[part], "for", part.Name)
+			debugPrint("Stored original Y =", originalPositions[part], "for", part.Name)
 		end
+		
 		local targetY = originalPositions[part] + targetOffsetY
-		print("Tweening", part.Name, "from Y =", part.Position.Y, "to Y =", targetY)
+		debugPrint("Tweening", part.Name, "from Y =", part.Position.Y, "to Y =", targetY)
 
 		if activeTweens[part] then
 			activeTweens[part]:Cancel()
 			activeTweens[part] = nil
-			print("Canceled existing tween for", part.Name)
+			tweenCount = tweenCount - 1
+			debugPrint("Canceled existing tween for", part.Name)
 		end
 
+		-- Select easing based on direction
+		local easingStyle = targetOffsetY < 0 and CONFIG.SINK_EASING_STYLE or CONFIG.POP_EASING_STYLE
+		local easingDirection = targetOffsetY < 0 and CONFIG.SINK_EASING_DIRECTION or CONFIG.POP_EASING_DIRECTION
+		
 		local tweenInfo = TweenInfo.new(
 			targetOffsetY < 0 and CONFIG.SINK_TIME or CONFIG.POP_TIME,
-			Enum.EasingStyle.Sine,
-			Enum.EasingDirection.InOut
+			easingStyle,
+			easingDirection
 		)
+		
 		local tween = TweenService:Create(
 			part,
 			tweenInfo,
 			{CFrame = CFrame.new(part.Position.X, targetY, part.Position.Z) * part.CFrame.Rotation}
 		)
+		
 		activeTweens[part] = tween
+		tweenCount = tweenCount + 1
+		
 		local startTime = tick()
 		tween:Play()
 		tween.Completed:Connect(function(status)
 			local duration = tick() - startTime
-			print("Tween completed for", part.Name, "at Y =", part.Position.Y, "status:", status, "duration:", duration)
+			debugPrint("Tween completed for", part.Name, "at Y =", part.Position.Y, "status:", status, "duration:", duration)
 			if activeTweens[part] == tween then
 				activeTweens[part] = nil
+				tweenCount = tweenCount - 1
 			end
+			
 			-- Check if all parts done
 			local allDone = true
 			for _, p in ipairs(parts) do
@@ -228,13 +299,15 @@ local function animateBlock(blockModel, targetOffsetY, force)
 					break
 				end
 			end
+			
 			if allDone then
 				blockStates[blockModel].isAnimating = nil
-				print("All animations done for", blockModel.Name)
+				debugPrint("All animations done for", blockModel.Name)
 			end
+			
 			-- Fallback if tween fails
 			if math.abs(part.Position.Y - targetY) > 0.1 then
-				print("Forcing Y =", targetY, "for", part.Name)
+				debugPrint("Forcing Y =", targetY, "for", part.Name)
 				part.CFrame = CFrame.new(part.Position.X, targetY, part.Position.Z) * part.CFrame.Rotation
 			end
 		end)
@@ -275,18 +348,20 @@ local function setupBlock(blockModel)
 				return false
 			end
 			
-			print("Setting up block:", blockModel.Name)
+			debugPrint("Setting up block:", blockModel.Name)
 
 			-- Set PrimaryPart
 			if not blockModel.PrimaryPart then
+				-- Find the first BasePart instead of the largest one
 				for _, part in ipairs(blockModel:GetChildren()) do
 					if part:IsA("BasePart") then
 						blockModel.PrimaryPart = part
-						print("Auto-set PrimaryPart for", blockModel.Name, "to", part.Name)
+						debugPrint("Auto-set PrimaryPart for", blockModel.Name, "to", part.Name)
 						break
 					end
 				end
 			end
+			
 			if not blockModel.PrimaryPart then
 				warn("setupBlock: No BasePart found for", blockModel.Name)
 				return false
@@ -298,6 +373,7 @@ local function setupBlock(blockModel)
 				warn("setupBlock: Invalid bounding box for", blockModel.Name, "- size:", size or "nil")
 				return false
 			end
+			
 			local partCount = 0
 			local partsList = {}
 			for _, p in ipairs(blockModel:GetChildren()) do
@@ -306,7 +382,11 @@ local function setupBlock(blockModel)
 					table.insert(partsList, p.Name)
 				end
 			end
-			print("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, "parts:", partCount, "names:", table.concat(partsList, ", "), "PrimaryPart Y:", blockModel.PrimaryPart.Position.Y, "CanCollide:", blockModel.PrimaryPart.CanCollide)
+			
+			debugPrint("Block", blockModel.Name, "size:", size, "center Y:", cframe.Position.Y, 
+					  "parts:", partCount, "names:", table.concat(partsList, ", "), 
+					  "PrimaryPart Y:", blockModel.PrimaryPart.Position.Y, 
+					  "CanCollide:", blockModel.PrimaryPart.CanCollide)
 
 			-- Anchor and clean parts
 			for _, part in ipairs(blockModel:GetChildren()) do
@@ -316,7 +396,7 @@ local function setupBlock(blockModel)
 					local joints = part:GetJoints()
 					for _, joint in ipairs(joints) do
 						if joint:IsA("Constraint") or joint:IsA("Weld") then
-							print("Removing joint", joint.Name, "from", part.Name)
+							debugPrint("Removing joint", joint.Name, "from", part.Name)
 							joint:Destroy()
 						end
 					end
@@ -329,7 +409,8 @@ local function setupBlock(blockModel)
 				isAnimating = false,
 				touchingPlayers = {},
 				touchConnections = {},
-				highlight = nil
+				highlight = nil,
+				lastTouchTime = 0
 			}
 
 			-- Connect touch events to PrimaryPart
@@ -337,14 +418,22 @@ local function setupBlock(blockModel)
 			local touchConn = primaryPart.Touched:Connect(function(hit)
 				local player = Players:GetPlayerFromCharacter(hit.Parent)
 				if player and hit.Name == "HumanoidRootPart" then
+					local currentTime = tick()
+					if currentTime - blockStates[blockModel].lastTouchTime < CONFIG.TOUCH_DEBOUNCE_TIME then
+						return -- Prevent rapid touch events
+					end
+					blockStates[blockModel].lastTouchTime = currentTime
+					
 					local posY = hit.Position.Y
 					if not blockStates[blockModel].touchingPlayers[player] then
 						blockStates[blockModel].touchingPlayers[player] = true
 						local count = 0
 						for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
-						print("Player", player.Name, "touched", blockModel.Name, "| touchingPlayers:", count, "player Y:", posY, "block Y:", primaryPart.Position.Y)
+						debugPrint("Player", player.Name, "touched", blockModel.Name, 
+								 "| touchingPlayers:", count, "player Y:", posY, 
+								 "block Y:", primaryPart.Position.Y)
 						if not blockStates[blockModel].isSunk then
-							print("Sinking", blockModel.Name)
+							debugPrint("Sinking", blockModel.Name)
 							blockStates[blockModel].isSunk = true
 							animateBlock(blockModel, -CONFIG.SINK_DISTANCE, true)
 							if blockModel.PrimaryPart then
@@ -362,7 +451,7 @@ local function setupBlock(blockModel)
 									fadeTween.Completed:Connect(function()
 										sound:Stop()
 										sound.Volume = CONFIG.SINK_SOUND_VOLUME
-										print("Sound faded out for", blockModel.Name)
+										debugPrint("Sound faded out for", blockModel.Name)
 									end)
 								end
 							end
@@ -370,6 +459,7 @@ local function setupBlock(blockModel)
 					end
 				end
 			end)
+			
 			local touchEndedConn = primaryPart.TouchEnded:Connect(function(hit)
 				local player = Players:GetPlayerFromCharacter(hit.Parent)
 				if player and hit.Name == "HumanoidRootPart" then
@@ -378,13 +468,16 @@ local function setupBlock(blockModel)
 						blockStates[blockModel].touchingPlayers[player] = nil
 						local count = 0
 						for _ in pairs(blockStates[blockModel].touchingPlayers) do count = count + 1 end
-						print("Player", player.Name, "left", blockModel.Name, "| touchingPlayers:", count, "player Y:", hit.Position.Y, "block Y:", primaryPart.Position.Y)
+						debugPrint("Player", player.Name, "left", blockModel.Name, 
+								 "| touchingPlayers:", count, "player Y:", hit.Position.Y, 
+								 "block Y:", primaryPart.Position.Y)
 						if count == 0 and blockStates[blockModel].isSunk then
 							popBlock(blockModel)
 						end
 					end
 				end
 			end)
+			
 			table.insert(blockStates[blockModel].touchConnections, touchConn)
 			table.insert(blockStates[blockModel].touchConnections, touchEndedConn)
 
@@ -392,7 +485,7 @@ local function setupBlock(blockModel)
 			if blockModel.PrimaryPart then
 				if not blockModel.PrimaryPart:FindFirstChild("SinkSound") then
 					safeExecute(createSound, blockModel.PrimaryPart, CONFIG.SINK_SOUND_ID, CONFIG.SINK_SOUND_VOLUME)
-					print("Added SinkSound to", blockModel.Name)
+					debugPrint("Added SinkSound to", blockModel.Name)
 				end
 				if not blockModel.PrimaryPart:FindFirstChild("ParticleAttachment") then
 					local attachment = Instance.new("Attachment")
@@ -400,14 +493,14 @@ local function setupBlock(blockModel)
 					attachment.Position = Vector3.new(0, size.Y/2, 0)
 					attachment.Parent = blockModel.PrimaryPart
 					safeExecute(createParticleEmitter, attachment, CONFIG)
-					print("Added PopParticles to", blockModel.Name, "at Y =", size.Y/2)
+					debugPrint("Added PopParticles to", blockModel.Name, "at Y =", size.Y/2)
 				end
 			end
 
 			-- Trigger zone with Highlight
 			if CONFIG.SHOW_TRIGGER_ZONES then
 				blockStates[blockModel].highlight = safeExecute(createHighlight, blockModel)
-				print("Added Highlight zone for", blockModel.Name)
+				debugPrint("Added Highlight zone for", blockModel.Name)
 			end
 
 			return true
@@ -424,42 +517,7 @@ local function setupBlock(blockModel)
 		end
 	end
 	
-	-- Cleanup if all retries failed
-	if blockStates[blockModel] then
-		-- Cleanup connections
-		for _, conn in ipairs(blockStates[blockModel].touchConnections) do
-			conn:Disconnect()
-		end
-		
-		-- Cleanup highlight
-		if blockStates[blockModel].highlight then
-			blockStates[blockModel].highlight:Destroy()
-		end
-		
-		-- Cleanup sound and particles
-		if blockModel.PrimaryPart then
-			local sound = blockModel.PrimaryPart:FindFirstChild("SinkSound")
-			if sound then
-				sound:Destroy()
-			end
-			
-			local attachment = blockModel.PrimaryPart:FindFirstChild("ParticleAttachment")
-			if attachment then
-				attachment:Destroy()
-			end
-		end
-		
-		-- Cleanup tweens
-		for _, part in ipairs(blockModel:GetChildren()) do
-			if part:IsA("BasePart") and activeTweens[part] then
-				activeTweens[part]:Cancel()
-				activeTweens[part] = nil
-			end
-		end
-		
-		blockStates[blockModel] = nil
-	end
-	
+	cleanupBlock(blockModel)
 	return false
 end
 
