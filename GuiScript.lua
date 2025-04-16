@@ -116,13 +116,13 @@ local function addHoverEffect(button)
 	end)
 end
 
--- Personality Buttons
+-- Personality Buttons with Emojis
 local personalities = {
-	{name = "Angry", color = Color3.fromRGB(255, 0, 0)},
-	{name = "Mysterious", color = Color3.fromRGB(0, 0, 255)},
-	{name = "Sweet", color = Color3.fromRGB(255, 105, 180)},
-	{name = "Sarcastic", color = Color3.fromRGB(0, 255, 0)},
-	{name = "Random", color = Color3.fromRGB(255, 255, 255)}
+	{name = "Angry", color = Color3.fromRGB(255, 0, 0), emoji = "rbxassetid://10724815587"}, -- 😣
+	{name = "Mysterious", color = Color3.fromRGB(0, 0, 255), emoji = "rbxassetid://9730549605"}, -- 🪐
+	{name = "Sweet", color = Color3.fromRGB(255, 105, 180), emoji = "rbxassetid://10724815282"}, -- 💗
+	{name = "Sarcastic", color = Color3.fromRGB(0, 255, 0), emoji = "rbxassetid://10724815692"}, -- 😏
+	{name = "Random", color = Color3.fromRGB(255, 255, 255), emoji = "rbxassetid://10724815036"} -- 🎲
 }
 
 local selectedPersonality = "Random"
@@ -133,10 +133,7 @@ for i, personality in ipairs(personalities) do
 	button.Size = UDim2.new(0, 60, 0, 60)
 	button.Position = UDim2.new(0, (i-1) * 70, 0, 0)
 	button.BackgroundColor3 = personality.color
-	button.Text = personality.name
-	button.TextScaled = true
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.Font = Enum.Font.SourceSansBold
+	button.Text = "" -- No text, using emoji instead
 	button.Parent = personalityFrame
 
 	local buttonCorner = Instance.new("UICorner")
@@ -154,6 +151,14 @@ for i, personality in ipairs(personalities) do
 	}
 	buttonGradient.Rotation = 90
 	buttonGradient.Parent = button
+
+	-- Add emoji ImageLabel
+	local emojiLabel = Instance.new("ImageLabel")
+	emojiLabel.Size = UDim2.new(0, 40, 0, 40)
+	emojiLabel.Position = UDim2.new(0.5, -20, 0.5, -20)
+	emojiLabel.BackgroundTransparency = 1
+	emojiLabel.Image = personality.emoji
+	emojiLabel.Parent = button
 
 	-- Add UIStroke for persistent outline on selection
 	local buttonStroke = Instance.new("UIStroke")
@@ -187,11 +192,11 @@ for i, personality in ipairs(personalities) do
 		for name, btn in pairs(personalityButtons) do
 			if name == selectedPersonality then
 				btn.BackgroundTransparency = 0
-				btn.TextTransparency = 0
+				btn:FindFirstChild("ImageLabel").ImageTransparency = 0
 				btn:FindFirstChild("UIStroke").Transparency = 0 -- Show outline
 			else
 				btn.BackgroundTransparency = 0.5 -- More pronounced transparency
-				btn.TextTransparency = 0.5
+				btn:FindFirstChild("ImageLabel").ImageTransparency = 0.5
 				btn:FindFirstChild("UIStroke").Transparency = 1 -- Hide outline
 			end
 		end
@@ -200,7 +205,7 @@ end
 
 -- Set initial state for Random button
 personalityButtons["Random"].BackgroundTransparency = 0
-personalityButtons["Random"].TextTransparency = 0
+personalityButtons["Random"]:FindFirstChild("ImageLabel").ImageTransparency = 0
 personalityButtons["Random"]:FindFirstChild("UIStroke").Transparency = 0
 
 -- Shake Button
