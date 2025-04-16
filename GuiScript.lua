@@ -6,7 +6,6 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = player:WaitForChild("PlayerGui")
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
-local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
 
 local screenGui = Instance.new("ScreenGui")
@@ -64,8 +63,8 @@ shopGradient.Parent = shopButton
 
 -- Question Frame
 local questionFrame = Instance.new("Frame")
-questionFrame.Size = UDim2.new(0, 400, 0, 280)
-questionFrame.Position = UDim2.new(0.5, -200, 0.5, -140)
+questionFrame.Size = UDim2.new(0, 400, 0, 380) -- Increased height to accommodate personality selection
+questionFrame.Position = UDim2.new(0.5, -200, 0.5, -190)
 questionFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 questionFrame.BackgroundTransparency = 0.2
 questionFrame.BorderSizePixel = 0
@@ -79,6 +78,7 @@ qGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(
 qGradient.Rotation = 90
 qGradient.Parent = questionFrame
 
+-- Question Box
 local questionBox = Instance.new("TextBox")
 questionBox.Size = UDim2.new(0, 340, 0, 70)
 questionBox.Position = UDim2.new(0.5, -170, 0, 40)
@@ -93,9 +93,91 @@ local qBoxCorner = Instance.new("UICorner")
 qBoxCorner.CornerRadius = UDim.new(0, 15)
 qBoxCorner.Parent = questionBox
 
+-- Personality Selection Frame
+local personalityFrame = Instance.new("Frame")
+personalityFrame.Size = UDim2.new(0, 340, 0, 60)
+personalityFrame.Position = UDim2.new(0.5, -170, 0, 120)
+personalityFrame.BackgroundTransparency = 1
+personalityFrame.Parent = questionFrame
+
+-- Hover effect function
+local function addHoverEffect(button)
+	local originalSize = button.Size
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 10, originalSize.Y.Scale, originalSize.Y.Offset + 5)}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {Size = originalSize}):Play()
+	end)
+end
+
+-- Personality Buttons
+local personalities = {
+	{name = "Angry", color = Color3.fromRGB(255, 0, 0)},
+	{name = "Mysterious", color = Color3.fromRGB(0, 0, 255)},
+	{name = "Sweet", color = Color3.fromRGB(255, 105, 180)},
+	{name = "Sarcastic", color = Color3.fromRGB(0, 255, 0)},
+	{name = "Random", color = Color3.fromRGB(255, 255, 255)}
+}
+
+local selectedPersonality = "Random"
+local personalityButtons = {}
+
+for i, personality in ipairs(personalities) do
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 60, 0, 60)
+	button.Position = UDim2.new(0, (i-1) * 70, 0, 0)
+	button.BackgroundColor3 = personality.color
+	button.Text = personality.name
+	button.TextScaled = true
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = personalityFrame
+
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 15)
+	buttonCorner.Parent = button
+
+	local buttonGradient = Instance.new("UIGradient")
+	buttonGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, personality.color),
+		ColorSequenceKeypoint.new(1, Color3.new(
+			personality.color.R * 0.7,
+			personality.color.G * 0.7,
+			personality.color.B * 0.7
+			))
+	}
+	buttonGradient.Rotation = 90
+	buttonGradient.Parent = button
+
+	-- Add hover effect
+	addHoverEffect(button)
+
+	-- Store button reference
+	personalityButtons[personality.name] = button
+
+	-- Handle selection
+	button.MouseButton1Click:Connect(function()
+		clickSound:Play()
+		selectedPersonality = personality.name
+
+		-- Update all buttons' appearance
+		for name, btn in pairs(personalityButtons) do
+			if name == selectedPersonality then
+				btn.BackgroundTransparency = 0
+				btn.TextTransparency = 0
+			else
+				btn.BackgroundTransparency = 0.3
+				btn.TextTransparency = 0.3
+			end
+		end
+	end)
+end
+
+-- Shake Button
 local shakeButton = Instance.new("TextButton")
 shakeButton.Size = UDim2.new(0, 140, 0, 60)
-shakeButton.Position = UDim2.new(0.5, -70, 0, 180)
+shakeButton.Position = UDim2.new(0.5, -70, 0, 280)
 shakeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
 shakeButton.Text = "Shake!"
 shakeButton.TextScaled = true
@@ -163,31 +245,6 @@ coinPopup.TextColor3 = Color3.fromRGB(255, 215, 0)
 coinPopup.Font = Enum.Font.SourceSansBold
 coinPopup.Parent = coinPopupFrame
 
--- Reroll Feedback Frame
-local rerollFeedbackFrame = Instance.new("Frame")
-rerollFeedbackFrame.Size = UDim2.new(0, 200, 0, 40)
-rerollFeedbackFrame.Position = UDim2.new(0.5, -100, 0, 50)
-rerollFeedbackFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-rerollFeedbackFrame.BackgroundTransparency = 0.2
-rerollFeedbackFrame.Visible = false
-rerollFeedbackFrame.Parent = screenGui
-local rerollFeedbackCorner = Instance.new("UICorner")
-rerollFeedbackCorner.CornerRadius = UDim.new(0, 10)
-rerollFeedbackCorner.Parent = rerollFeedbackFrame
-local rerollFeedbackGradient = Instance.new("UIGradient")
-rerollFeedbackGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))}
-rerollFeedbackGradient.Rotation = 90
-rerollFeedbackGradient.Parent = rerollFeedbackFrame
-
-local rerollFeedback = Instance.new("TextLabel")
-rerollFeedback.Size = UDim2.new(1, -10, 1, 0)
-rerollFeedback.Position = UDim2.new(0, 5, 0, 0)
-rerollFeedback.BackgroundTransparency = 1
-rerollFeedback.Text = ""
-rerollFeedback.TextScaled = true
-rerollFeedback.TextColor3 = Color3.fromRGB(255, 100, 100) -- Softer red
-rerollFeedback.Font = Enum.Font.SourceSansBold
-rerollFeedback.Parent = rerollFeedbackFrame
 
 -- Shop Frame
 local shopFrame = Instance.new("Frame")
@@ -216,22 +273,6 @@ shopTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 shopTitle.Font = Enum.Font.SourceSansBold
 shopTitle.Parent = shopFrame
 
-local rerollButton = Instance.new("TextButton")
-rerollButton.Size = UDim2.new(0, 140, 0, 60)
-rerollButton.Position = UDim2.new(0.5, -70, 0, 80)
-rerollButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-rerollButton.Text = "Reroll (100)"
-rerollButton.TextScaled = true
-rerollButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-rerollButton.Font = Enum.Font.SourceSansBold
-rerollButton.Parent = shopFrame
-local rerollCorner = Instance.new("UICorner")
-rerollCorner.CornerRadius = UDim.new(0, 15)
-rerollCorner.Parent = rerollButton
-local rerollGradient = Instance.new("UIGradient")
-rerollGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 100, 0))}
-rerollGradient.Rotation = 90
-rerollGradient.Parent = rerollButton
 
 local coinPackButton = Instance.new("TextButton")
 coinPackButton.Size = UDim2.new(0, 140, 0, 60)
@@ -280,19 +321,8 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 12)
 closeCorner.Parent = closeShopButton
 
-local function addHoverEffect(button)
-	local originalSize = button.Size
-	button.MouseEnter:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 10, originalSize.Y.Scale, originalSize.Y.Offset + 5)}):Play()
-	end)
-	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {Size = originalSize}):Play()
-	end)
-end
-
 addHoverEffect(shopButton)
 addHoverEffect(shakeButton)
-addHoverEffect(rerollButton)
 addHoverEffect(coinPackButton)
 addHoverEffect(vipButton)
 addHoverEffect(closeShopButton)
@@ -313,34 +343,7 @@ shopButton.MouseButton1Click:Connect(function()
 	responseFrame.Visible = false
 end)
 
-local function showRerollFeedback(message)
-	if rerollFeedbackFrame.Visible then wait(0.1) end
-	rerollFeedback.Text = message
-	rerollFeedbackFrame.Visible = true
-	local tween = TweenService:Create(rerollFeedbackFrame, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 0, 30), Transparency = 1})
-	tween:Play()
-	tween.Completed:Connect(function()
-		rerollFeedbackFrame.Visible = false
-		rerollFeedbackFrame.Transparency = 0
-		rerollFeedbackFrame.Position = UDim2.new(0.5, -100, 0, 50)
-	end)
-end
 
-rerollButton.MouseButton1Click:Connect(function()
-	clickSound:Play()
-	if not currentBall then
-		showRerollFeedback("Click a ball first!")
-		return
-	end
-	local coins = player:WaitForChild("Coins").Value
-	if coins < 100 then
-		showRerollFeedback("Need 100 coins!")
-		return
-	end
-	rerollEvent:FireServer(currentBall)
-	currentBall.ShakeSound:Play()
-	shopFrame.Visible = false
-end)
 
 coinPackButton.MouseButton1Click:Connect(function()
 	clickSound:Play()
@@ -397,7 +400,6 @@ shakeEvent.OnClientEvent:Connect(function(data, coins)
 		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
 		showResponse(data, coins, player:WaitForChild("VIP").Value and 10 or 5)
-	elseif data.type == "RerollResponse" then
-		showResponse(data, coins, -100)
+
 	end
 end)

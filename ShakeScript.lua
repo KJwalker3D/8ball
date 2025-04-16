@@ -8,21 +8,20 @@ local CONFIG = {
 	DAILY_BONUS_AMOUNT = 100,
 	SHAKE_REWARD_VIP = 10,
 	SHAKE_REWARD_NORMAL = 5,
-	REROLL_COST = 100,
-	
+
 	-- Animation Settings
 	SHAKE_DURATION = 15,
 	SHAKE_INTERVAL = 0.2,
 	SHAKE_INTERVAL_DECREASE = 0.01,
 	SHAKE_OFFSET = 0.1,
 	CELEBRATION_DURATION = 1,
-	PROMPT_TIMEOUT = 5,
-	
+	PROMPT_TIMEOUT = 4,
+
 	-- Visual Settings
 	HOVER_AMPLITUDE = 1.5,
 	HOVER_SPEED = 0.5,
 	SPIN_SPEED = 36,
-	
+
 	-- Asset IDs
 	ASSET_IDS = {
 		-- Sounds
@@ -34,7 +33,7 @@ local CONFIG = {
 		CELEBRATION_SOUND_SARCASTIC = "rbxassetid://18204124897",
 		BADGE_SOUND = "rbxassetid://6648577112",
 		DAILY_BONUS_SOUND = "rbxassetid://9125644905",
-		
+
 		-- Particles
 		CELEBRATION_PARTICLES_ANGRY = "rbxassetid://16933997761",
 		CELEBRATION_PARTICLES_MYSTERIOUS = "rbxassetid://6700009498",
@@ -43,13 +42,13 @@ local CONFIG = {
 		BADGE_PARTICLES = "rbxassetid://18699497367",
 		DAILY_BONUS_PARTICLES = "rbxassetid://438224846"
 	},
-	
+
 	-- Product IDs
 	PRODUCT_IDS = {
 		COIN_PACK = 3258288474,
 		VIP_PASS = 1161085782
 	},
-	
+
 	-- Badge IDs
 	BADGE_IDS = {
 		VISITOR = 4484079797052173,
@@ -72,7 +71,6 @@ local part = model:WaitForChild("CelebrationParticleEmitter")
 
 -- Events
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
-local rerollEvent = game.ReplicatedStorage:WaitForChild("RerollEvent")
 local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
 local promptEnableEvent = Instance.new("RemoteEvent")
 promptEnableEvent.Name = "PromptEnableEvent"
@@ -189,7 +187,7 @@ local function createNotification(text, color, parent)
 	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = parent
-	
+
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
 	textLabel.BackgroundTransparency = 1
@@ -200,7 +198,7 @@ local function createNotification(text, color, parent)
 	textLabel.Font = Enum.Font.SourceSansBold
 	textLabel.TextScaled = true
 	textLabel.Parent = billboard
-	
+
 	return {
 		billboard = billboard,
 		textLabel = textLabel
@@ -234,45 +232,45 @@ local function shakeBall(player)
 	local celebSound = model:WaitForChild("CelebrationSound")
 	local ballToon = model:WaitForChild("ballToon")
 	local originalCFrame = ball.CFrame
-	
+
 	-- Shake animation
 	for i = 1, CONFIG.SHAKE_DURATION do
 		local rand = personalities[math.random(1, #personalities)]
 		ball.Color = rand.color
 		if particles then particles.Color = ColorSequence.new(rand.color) end
-		
+
 		local offset = Vector3.new(
 			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
 			math.random(-1, 1) * CONFIG.SHAKE_OFFSET,
 			math.random(-1, 1) * CONFIG.SHAKE_OFFSET
 		)
-		
+
 		local tweenBall = TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame + offset})
 		local tweenToon = TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame + offset})
 		activeTweens[tweenBall] = true
 		activeTweens[tweenToon] = true
 		tweenBall:Play()
 		tweenToon:Play()
-		
+
 		wait(CONFIG.SHAKE_INTERVAL - (i * CONFIG.SHAKE_INTERVAL_DECREASE))
 	end
-	
+
 	-- Final personality selection
 	local final = personalities[math.random(1, #personalities)]
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
-	
+
 	local finalTweenBall = TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame})
 	local finalTweenToon = TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame})
 	activeTweens[finalTweenBall] = true
 	activeTweens[finalTweenToon] = true
 	finalTweenBall:Play()
 	finalTweenToon:Play()
-	
+
 	-- Set personality and play effects
 	ball:SetAttribute("Personality", final.type)
 	local particleTexture, particleColor, soundId
-	
+
 	if final.type == "Angry" then
 		particleTexture = CONFIG.ASSET_IDS.CELEBRATION_PARTICLES_ANGRY
 		particleColor = Color3.fromRGB(255, 0, 0)
@@ -290,17 +288,17 @@ local function shakeBall(player)
 		particleColor = Color3.fromRGB(0, 255, 0)
 		soundId = CONFIG.ASSET_IDS.CELEBRATION_SOUND_SARCASTIC
 	end
-	
+
 	celebParticles.Texture = particleTexture
 	celebParticles.Color = ColorSequence.new(particleColor)
 	celebSound.SoundId = soundId
 	celebParticles.Enabled = true
 	celebSound:Play()
-	
+
 	wait(CONFIG.CELEBRATION_DURATION)
 	celebParticles.Enabled = false
 	isShaking = false
-	
+
 	-- Timeout to re-enable prompt if client doesn't respond
 	spawn(function()
 		wait(CONFIG.PROMPT_TIMEOUT)
@@ -309,12 +307,12 @@ local function shakeBall(player)
 			print("Prompt re-enabled via timeout for " .. player.Name)
 		end
 	end)
-	
+
 	-- Cleanup tweens
 	for tween in pairs(activeTweens) do
 		activeTweens[tween] = nil
 	end
-	
+
 	return final
 end
 
@@ -351,16 +349,16 @@ end
 local function awardBadge(player, badgeId, badgeName)
 	if not BadgeService:UserHasBadgeAsync(player.UserId, badgeId) then
 		BadgeService:AwardBadge(player.UserId, badgeId)
-		
+
 		-- Create badge notification
 		local notification = createNotification("Badge Earned: " .. badgeName .. "!", Color3.fromRGB(255, 215, 0), ball)
-		
+
 		-- Create celebration effects
 		local particles = createParticleEmitter(CONFIG.ASSET_IDS.BADGE_PARTICLES, Color3.fromRGB(255, 215, 0), ball, 30)
-		
+
 		local sound = createSound(CONFIG.ASSET_IDS.BADGE_SOUND, ball, 0.7)
 		sound:Play()
-		
+
 		-- Animate and cleanup
 		wait(1.5)
 		TweenService:Create(notification.textLabel, TweenInfo.new(0.5), {
@@ -380,12 +378,12 @@ end
 local function showDailyBonus(player)
 	local bonusParticles = createParticleEmitter(CONFIG.ASSET_IDS.DAILY_BONUS_PARTICLES, Color3.fromRGB(255, 215, 0), ball, 50)
 	bonusParticles.Enabled = true
-	
+
 	local bonusSound = createSound(CONFIG.ASSET_IDS.DAILY_BONUS_SOUND, ball, 0.7)
 	bonusSound:Play()
-	
+
 	local notification = createNotification("Daily Bonus: +100 Coins!", Color3.fromRGB(255, 215, 0), ball)
-	
+
 	wait(1.5)
 	local tween = TweenService:Create(notification.textLabel, TweenInfo.new(0.5), {
 		TextTransparency = 1,
@@ -424,7 +422,7 @@ end)
 Players.PlayerAdded:Connect(function(player)
 	local data
 	local success = false
-	
+
 	-- Retry CoinSaver.loadData
 	for i = 1, 3 do
 		success, data = pcall(function()
@@ -437,29 +435,29 @@ Players.PlayerAdded:Connect(function(player)
 		warn("Failed to load CoinSaver data for", player.Name, "on attempt", i)
 		wait(1)
 	end
-	
+
 	-- Fallback if load fails
 	if not success or not data or not data.Coins then
 		data = {Coins = CONFIG.DEFAULT_COINS, VIP = false}
 		warn("Using default data for", player.Name, ": Coins = " .. CONFIG.DEFAULT_COINS)
 	end
-	
+
 	-- Initialize player data
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
 	coins.Value = data.Coins or CONFIG.DEFAULT_COINS
 	coins.Parent = player
-	
+
 	local vip = Instance.new("BoolValue")
 	vip.Name = "VIP"
 	vip.Value = MarketplaceService:UserOwnsGamePassAsync(player.UserId, VIP_PASS_ID) or data.VIP
 	vip.Parent = player
-	
+
 	local lastClaim = Instance.new("IntValue")
 	lastClaim.Name = "LastClaim"
 	lastClaim.Value = os.time()
 	lastClaim.Parent = player
-	
+
 	-- Initialize shake progress tracking
 	local shakeProgress = Instance.new("Folder")
 	shakeProgress.Name = "ShakeProgress"
@@ -470,7 +468,7 @@ Players.PlayerAdded:Connect(function(player)
 		clicked.Value = false
 		clicked.Parent = shakeProgress
 	end
-	
+
 	-- Check and award Welcome badge
 	local badgeSuccess, hasBadge = false, false
 	for i = 1, 3 do
@@ -484,7 +482,7 @@ Players.PlayerAdded:Connect(function(player)
 		warn("Failed to check Welcome badge for", player.Name, "on attempt", i)
 		wait(1)
 	end
-	
+
 	if badgeSuccess and not hasBadge then
 		awardBadge(player, BADGE_ID_VISITOR, "Welcome!")
 		print("Awarded Welcome badge to", player.Name)
@@ -495,7 +493,7 @@ Players.PlayerAdded:Connect(function(player)
 			print(player.Name, "already has Welcome badge")
 		end
 	end
-	
+
 	shakeEvent:FireClient(player, {type = "Init"}, coins.Value)
 end)
 
@@ -538,13 +536,13 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
 		return
 	end
-	
+
 	local coins = player:WaitForChild("Coins")
 	local vip = player:WaitForChild("VIP")
 	local lastClaim = player:WaitForChild("LastClaim")
 	local currentTime = os.time()
 	local dayInSeconds = 24 * 60 * 60
-	
+
 	-- Check and award daily bonus
 	if forceDailyBonus or (currentTime - lastClaim.Value >= dayInSeconds) then
 		coins.Value = coins.Value + CONFIG.DAILY_BONUS_AMOUNT
@@ -553,12 +551,12 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 		showDailyBonus(player)
 		print("Daily Bonus Triggered for " .. player.Name)
 	end
-	
+
 	-- Process shake
 	local final = shakeBall(player)
 	coins.Value = coins.Value + (vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL)
 	coinSound:Play()
-	
+
 	-- Check for Master Shaker badge
 	local shakeProgress = player:WaitForChild("ShakeProgress")
 	local personalityClicked = shakeProgress:FindFirstChild(final.type)
@@ -575,7 +573,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question)
 			awardBadge(player, BADGE_ID_MASTER, "Master Shaker")
 		end
 	end
-	
+
 	CoinSaver.saveData(player)
 	shakeEvent:FireClient(player, {
 		type = "Response",
@@ -592,36 +590,7 @@ promptEnableEvent.OnServerEvent:Connect(function(player, ballModel)
 	print("Prompt re-enabled for " .. player.Name .. " after client fade")
 end)
 
-rerollEvent.OnServerEvent:Connect(function(player, ballModel)
-	if ballModel ~= model then return end
-	local coins = player:WaitForChild("Coins")
-	if coins.Value >= 100 then
-		coins.Value = coins.Value - 100
-		local final = shakeBall(player)
-		local shakeProgress = player:WaitForChild("ShakeProgress")
-		local personalityClicked = shakeProgress:FindFirstChild(final.type)
-		if personalityClicked and not personalityClicked.Value then
-			personalityClicked.Value = true
-			local allClicked = true
-			for _, clicked in pairs(shakeProgress:GetChildren()) do
-				if not clicked.Value then
-					allClicked = false
-					break
-				end
-			end
-			if allClicked then
-				awardBadge(player, BADGE_ID_MASTER, "Master Shaker")
-			end
-		end
-		CoinSaver.saveData(player)
-		shakeEvent:FireClient(player, {
-			type = "RerollResponse",
-			ball = model,
-			personality = final,
-			response = final.responses[math.random(1, #final.responses)]
-		}, coins.Value)
-	end
-end)
+
 
 buyVIPEvent.OnServerEvent:Connect(function(player)
 	MarketplaceService:PromptGamePassPurchase(player, VIP_PASS_ID)
