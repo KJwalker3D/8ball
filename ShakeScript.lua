@@ -276,8 +276,8 @@ local function shakeBall(player, selectedPersonality)
 	ball.Color = final.color
 	if particles then particles.Color = ColorSequence.new(final.color) end
 
-	local finalTweenBall = TweenService:Create(ball, TweenInfo.new(0.2), {CFrame = originalCFrame})
-	local finalTweenToon = TweenService:Create(ballToon, TweenInfo.new(0.2), {CFrame = originalCFrame})
+	local finalTweenBall = TweenService:Create(ball, TweenInfo.new(0.1), {CFrame = originalCFrame})
+	local finalTweenToon = TweenService:Create(ballToon, TweenInfo.new(0.1), {CFrame = originalCFrame})
 	activeTweens[finalTweenBall] = true
 	activeTweens[finalTweenToon] = true
 	finalTweenBall:Play()
@@ -565,13 +565,15 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question, selectedP
 		lastClaim.Value = currentTime
 		coinSound:Play()
 		showDailyBonus(player)
-		print("Daily Bonus Triggered for " .. player.Name)
+		print("Daily Bonus Triggered for " .. player.Name .. ": +100 coins")
 	end
 
 	-- Process shake with selected personality
 	local final = shakeBall(player, selectedPersonality)
-	coins.Value = coins.Value + (vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL)
+	local rewardAmount = vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL
+	coins.Value = coins.Value + rewardAmount
 	coinSound:Play()
+	print("Awarded " .. rewardAmount .. " coins to " .. player.Name .. " (VIP: " .. tostring(vip.Value) .. "), new total: " .. coins.Value)
 
 	-- Check for Master Shaker badge
 	local shakeProgress = player:WaitForChild("ShakeProgress")
@@ -596,7 +598,8 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question, selectedP
 		ball = model,
 		personality = final,
 		response = final.responses[math.random(1, #final.responses)],
-		question = question
+		question = question,
+		rewardAmount = rewardAmount
 	}, coins.Value)
 end)
 
