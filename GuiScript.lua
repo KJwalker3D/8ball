@@ -3,87 +3,97 @@
     All game settings and constants in one place
 ]]
 local CONFIG = {
-    -- Product IDs
-    COIN_PACK_ID = 3258288474,
+	-- Product IDs
+	COIN_PACK_ID = 3258288474,
 
-    -- Asset IDs
-    ASSET_IDS = {
-        -- Sounds
-        CLICK_SOUND = "rbxassetid://9125397583",
-        SELECT_SOUND = "rbxassetid://9125644905",
-        
-        -- Emojis
-        EMOJI_ANGRY = "rbxassetid://1146879696",
-        EMOJI_MYSTERIOUS = "rbxassetid://91618616311321",
-        EMOJI_SWEET = "rbxassetid://15541285772",
-        EMOJI_SARCASTIC = "rbxassetid://1368994399",
-        EMOJI_RANDOM = "rbxassetid://17084107864"
-    },
+	-- Asset IDs
+	ASSET_IDS = {
+		-- Sounds
+		CLICK_SOUND = "rbxassetid://9125397583",
+		SELECT_SOUND = "rbxassetid://9125644905",
 
-    -- UI Settings
-    UI = {
-        -- Colors
-        BACKGROUND_COLOR = Color3.fromRGB(30, 30, 40),
-        BACKGROUND_TRANSPARENCY = 0.2,
-        TEXT_COLOR = Color3.fromRGB(255, 255, 255),
-        COIN_COLOR = Color3.fromRGB(255, 215, 0),
-        SHOP_BUTTON_COLOR = Color3.fromRGB(100, 80, 120),
-        SHAKE_BUTTON_COLOR = Color3.fromRGB(150, 0, 150),
-        QUESTION_BOX_COLOR = Color3.fromRGB(40, 40, 50),
-        QUESTION_TEXT_COLOR = Color3.fromRGB(200, 200, 200),
-        CLOSE_BUTTON_COLOR = Color3.fromRGB(200, 0, 0),
-        COIN_PACK_COLOR = Color3.fromRGB(0, 150, 255),
-        VIP_BUTTON_COLOR = Color3.fromRGB(255, 215, 0),
-        
-        -- Sizes
-        COIN_FRAME_SIZE = UDim2.new(0, 140, 0, 50),
-        SHOP_BUTTON_SIZE = UDim2.new(0, 100, 0, 50),
-        QUESTION_FRAME_SIZE = UDim2.new(0, 400, 0, 380),
-        RESPONSE_FRAME_SIZE = UDim2.new(0, 400, 0, 140),
-        SHOP_FRAME_SIZE = UDim2.new(0, 480, 0, 360),
-        QUESTION_BOX_SIZE = UDim2.new(0, 340, 0, 70),
-        PERSONALITY_FRAME_SIZE = UDim2.new(0, 340, 0, 60),
-        SHAKE_BUTTON_SIZE = UDim2.new(0, 140, 0, 60),
-        RESPONSE_LABEL_SIZE = UDim2.new(0, 340, 0, 90),
-        COIN_POPUP_SIZE = UDim2.new(0, 100, 0, 30),
-        SHOP_TITLE_SIZE = UDim2.new(0, 420, 0, 40),
-        CLOSE_BUTTON_SIZE = UDim2.new(0, 40, 0, 40),
-        
-        -- Corner Radius
-        CORNER_RADIUS = UDim.new(0, 12),
-        LARGE_CORNER_RADIUS = UDim.new(0, 20),
-        MEDIUM_CORNER_RADIUS = UDim.new(0, 15),
-        SMALL_CORNER_RADIUS = UDim.new(0, 8),
+		-- Emojis
+		EMOJI_ANGRY = "rbxassetid://1146879696",
+		EMOJI_MYSTERIOUS = "rbxassetid://91618616311321",
+		EMOJI_SWEET = "rbxassetid://15541285772",
+		EMOJI_SARCASTIC = "rbxassetid://1368994399",
+		EMOJI_RANDOM = "rbxassetid://17084107864"
+	},
 
-        -- Positions
-        COIN_FRAME_POSITION = UDim2.new(0, 10, 0, 10),
-        SHOP_BUTTON_POSITION = UDim2.new(0, 160, 0, 10),
-        QUESTION_FRAME_POSITION = UDim2.new(0.5, -200, 0.5, -190),
-        QUESTION_BOX_POSITION = UDim2.new(0.5, -170, 0, 40),
-        PERSONALITY_FRAME_POSITION = UDim2.new(0.5, -170, 0, 120),
-        SHAKE_BUTTON_POSITION = UDim2.new(0.5, -70, 0, 280),
-        RESPONSE_FRAME_POSITION = UDim2.new(0.5, -200, 0, 100),
-        RESPONSE_LABEL_POSITION = UDim2.new(0.5, -170, 0.5, -45),
-        COIN_POPUP_POSITION = UDim2.new(0, 150, 0, 60),
-        SHOP_FRAME_POSITION = UDim2.new(0.5, -240, 0.5, -180),
-        SHOP_TITLE_POSITION = UDim2.new(0.5, -210, 0, 20),
-        CLOSE_BUTTON_POSITION = UDim2.new(1, -50, 0, 10)
-    },
+	-- UI Settings
+	UI = {
+		-- Colors
+		BACKGROUND_COLOR = Color3.fromRGB(30, 30, 40),
+		BACKGROUND_TRANSPARENCY = 0.2,
+		TEXT_COLOR = Color3.fromRGB(255, 255, 255),
+		COIN_COLOR = Color3.fromRGB(255, 215, 0),
+		SHOP_BUTTON_COLOR = Color3.fromRGB(100, 80, 120),
+		SHAKE_BUTTON_COLOR = Color3.fromRGB(150, 0, 150),
+		QUESTION_BOX_COLOR = Color3.fromRGB(40, 40, 50),
+		QUESTION_TEXT_COLOR = Color3.fromRGB(200, 200, 200),
+		CLOSE_BUTTON_COLOR = Color3.fromRGB(200, 0, 0),
+		COIN_PACK_COLOR = Color3.fromRGB(0, 150, 255),
+		VIP_BUTTON_COLOR = Color3.fromRGB(255, 215, 0),
 
-    -- Animation Settings
-    ANIMATION = {
-        HOVER_DURATION = 0.2,
-        CLICK_DURATION = 0.1,
-        COIN_POPUP_DURATION = 2.5,
-        RESPONSE_DURATION = 2,
-        FADE_DURATION = 0.5
-    }
+		-- Sizes
+		COIN_FRAME_SIZE = UDim2.new(0, 140, 0, 50),
+		SHOP_BUTTON_SIZE = UDim2.new(0, 100, 0, 50),
+		QUESTION_FRAME_SIZE = UDim2.new(0, 400, 0, 380),
+		RESPONSE_FRAME_SIZE = UDim2.new(0, 400, 0, 140),
+		SHOP_FRAME_SIZE = UDim2.new(0, 480, 0, 360),
+		QUESTION_BOX_SIZE = UDim2.new(0, 340, 0, 70),
+		PERSONALITY_FRAME_SIZE = UDim2.new(0, 340, 0, 60),
+		SHAKE_BUTTON_SIZE = UDim2.new(0, 140, 0, 60),
+		RESPONSE_LABEL_SIZE = UDim2.new(0, 340, 0, 90),
+		COIN_POPUP_SIZE = UDim2.new(0, 100, 0, 30),
+		SHOP_TITLE_SIZE = UDim2.new(0, 420, 0, 40),
+		CLOSE_BUTTON_SIZE = UDim2.new(0, 40, 0, 40),
+
+		-- Corner Radius
+		CORNER_RADIUS = UDim.new(0, 12),
+		LARGE_CORNER_RADIUS = UDim.new(0, 20),
+		MEDIUM_CORNER_RADIUS = UDim.new(0, 15),
+		SMALL_CORNER_RADIUS = UDim.new(0, 8),
+
+		-- Positions
+		COIN_FRAME_POSITION = UDim2.new(0, 10, 0, 10),
+		SHOP_BUTTON_POSITION = UDim2.new(0, 160, 0, 10),
+		QUESTION_FRAME_POSITION = UDim2.new(0.5, -200, 0.5, -190),
+		QUESTION_BOX_POSITION = UDim2.new(0.5, -170, 0, 40),
+		PERSONALITY_FRAME_POSITION = UDim2.new(0.5, -170, 0, 120),
+		SHAKE_BUTTON_POSITION = UDim2.new(0.5, -70, 0, 280),
+		RESPONSE_FRAME_POSITION = UDim2.new(0.5, -200, 0, 100),
+		RESPONSE_LABEL_POSITION = UDim2.new(0.5, -170, 0.5, -45),
+		COIN_POPUP_POSITION = UDim2.new(0, 150, 0, 60),
+		SHOP_FRAME_POSITION = UDim2.new(0.5, -240, 0.5, -180),
+		SHOP_TITLE_POSITION = UDim2.new(0.5, -210, 0, 20),
+		CLOSE_BUTTON_POSITION = UDim2.new(1, -50, 0, 10)
+	},
+
+	-- Animation Settings
+	ANIMATION = {
+		HOVER_DURATION = 0.2,
+		CLICK_DURATION = 0.1,
+		COIN_POPUP_DURATION = 2.5,
+		RESPONSE_DURATION = 2,
+		FADE_DURATION = 0.5,
+		CAMERA_ZOOM_DURATION = 16
+	},
+	
+	-- Camera Settings
+	CAMERA = {
+		ZOOM_FRACTION = 0.7, -- Zoom to 70% of original distance
+		MIN_DISTANCE = 5, -- Prevent camera from getting too close
+		MAX_DISTANCE = 50 -- Cap initial distance for visibility
+	}
 }
 
 -- Services
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local camera = game.Workspace.CurrentCamera
 
 -- Player references
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
@@ -106,14 +116,17 @@ selectSound.Parent = playerGui
 -- State variables
 local currentBall = nil
 local selectedPersonality = "Random"
+local cameraTween = nil
+local cameraConnections = {}
+local originalCameraState = nil
 
 -- Personalities
 local PERSONALITIES = {
-    {name = "Angry", color = Color3.fromRGB(255, 0, 0), emoji = CONFIG.ASSET_IDS.EMOJI_ANGRY},
-    {name = "Mysterious", color = Color3.fromRGB(0, 0, 255), emoji = CONFIG.ASSET_IDS.EMOJI_MYSTERIOUS},
-    {name = "Sweet", color = Color3.fromRGB(255, 105, 180), emoji = CONFIG.ASSET_IDS.EMOJI_SWEET},
-    {name = "Sarcastic", color = Color3.fromRGB(0, 255, 0), emoji = CONFIG.ASSET_IDS.EMOJI_SARCASTIC},
-    {name = "Random", color = Color3.fromRGB(255, 255, 255), emoji = CONFIG.ASSET_IDS.EMOJI_RANDOM}
+	{name = "Angry", color = Color3.fromRGB(255, 0, 0), emoji = CONFIG.ASSET_IDS.EMOJI_ANGRY},
+	{name = "Mysterious", color = Color3.fromRGB(0, 0, 255), emoji = CONFIG.ASSET_IDS.EMOJI_MYSTERIOUS},
+	{name = "Sweet", color = Color3.fromRGB(255, 105, 180), emoji = CONFIG.ASSET_IDS.EMOJI_SWEET},
+	{name = "Sarcastic", color = Color3.fromRGB(0, 255, 0), emoji = CONFIG.ASSET_IDS.EMOJI_SARCASTIC},
+	{name = "Random", color = Color3.fromRGB(255, 255, 255), emoji = CONFIG.ASSET_IDS.EMOJI_RANDOM}
 }
 
 --[[
@@ -140,8 +153,8 @@ coinCorner.Parent = coinFrame
 
 local coinGradient = Instance.new("UIGradient")
 coinGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
 }
 coinGradient.Rotation = 90
 coinGradient.Parent = coinFrame
@@ -173,8 +186,8 @@ shopCorner.Parent = shopButton
 
 local shopGradient = Instance.new("UIGradient")
 shopGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 100, 140)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 60, 100))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 100, 140)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 60, 100))
 }
 shopGradient.Rotation = 90
 shopGradient.Parent = shopButton
@@ -195,8 +208,8 @@ qCorner.Parent = questionFrame
 
 local qGradient = Instance.new("UIGradient")
 qGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
 }
 qGradient.Rotation = 90
 qGradient.Parent = questionFrame
@@ -227,43 +240,43 @@ personalityFrame.Parent = questionFrame
 -- Create personality buttons
 local personalityButtons = {}
 for i, personality in ipairs(PERSONALITIES) do
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 60, 0, 60)
-    button.Position = UDim2.new(0, (i-1) * 70, 0, 0)
-    button.BackgroundColor3 = personality.color
-    button.Text = ""
-    button.Parent = personalityFrame
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 60, 0, 60)
+	button.Position = UDim2.new(0, (i-1) * 70, 0, 0)
+	button.BackgroundColor3 = personality.color
+	button.Text = ""
+	button.Parent = personalityFrame
 
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = CONFIG.UI.MEDIUM_CORNER_RADIUS
-    buttonCorner.Parent = button
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = CONFIG.UI.MEDIUM_CORNER_RADIUS
+	buttonCorner.Parent = button
 
-    local buttonGradient = Instance.new("UIGradient")
-    buttonGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, personality.color),
-        ColorSequenceKeypoint.new(1, Color3.new(
-            personality.color.R * 0.7,
-            personality.color.G * 0.7,
-            personality.color.B * 0.7
-        ))
-    }
-    buttonGradient.Rotation = 90
-    buttonGradient.Parent = button
+	local buttonGradient = Instance.new("UIGradient")
+	buttonGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, personality.color),
+		ColorSequenceKeypoint.new(1, Color3.new(
+			personality.color.R * 0.7,
+			personality.color.G * 0.7,
+			personality.color.B * 0.7
+			))
+	}
+	buttonGradient.Rotation = 90
+	buttonGradient.Parent = button
 
-    local emojiLabel = Instance.new("ImageLabel")
-    emojiLabel.Size = UDim2.new(0, 40, 0, 40)
-    emojiLabel.Position = UDim2.new(0.5, -20, 0.5, -20)
-    emojiLabel.BackgroundTransparency = 1
-    emojiLabel.Image = personality.emoji
-    emojiLabel.Parent = button
+	local emojiLabel = Instance.new("ImageLabel")
+	emojiLabel.Size = UDim2.new(0, 40, 0, 40)
+	emojiLabel.Position = UDim2.new(0.5, -20, 0.5, -20)
+	emojiLabel.BackgroundTransparency = 1
+	emojiLabel.Image = personality.emoji
+	emojiLabel.Parent = button
 
-    local buttonStroke = Instance.new("UIStroke")
-    buttonStroke.Thickness = 2
-    buttonStroke.Color = Color3.fromRGB(255, 255, 255)
-    buttonStroke.Transparency = 1
-    buttonStroke.Parent = button
+	local buttonStroke = Instance.new("UIStroke")
+	buttonStroke.Thickness = 2
+	buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+	buttonStroke.Transparency = 1
+	buttonStroke.Parent = button
 
-    personalityButtons[personality.name] = button
+	personalityButtons[personality.name] = button
 end
 
 -- Set initial state for Random button
@@ -288,8 +301,8 @@ shakeCorner.Parent = shakeButton
 
 local shakeGradient = Instance.new("UIGradient")
 shakeGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 0, 200)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 0, 100))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 0, 200)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 0, 100))
 }
 shakeGradient.Rotation = 90
 shakeGradient.Parent = shakeButton
@@ -310,8 +323,8 @@ rCorner.Parent = responseFrame
 
 local rGradient = Instance.new("UIGradient")
 rGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
 }
 rGradient.Rotation = 90
 rGradient.Parent = responseFrame
@@ -341,8 +354,8 @@ coinPopupCorner.Parent = coinPopupFrame
 
 local coinPopupGradient = Instance.new("UIGradient")
 coinPopupGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
 }
 coinPopupGradient.Rotation = 90
 coinPopupGradient.Parent = coinPopupFrame
@@ -373,8 +386,8 @@ sCorner.Parent = shopFrame
 
 local sGradient = Instance.new("UIGradient")
 sGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
 }
 sGradient.Rotation = 90
 sGradient.Parent = shopFrame
@@ -405,8 +418,8 @@ coinPackCorner.Parent = coinPackButton
 
 local coinPackGradient = Instance.new("UIGradient")
 coinPackGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 200))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 200))
 }
 coinPackGradient.Rotation = 90
 coinPackGradient.Parent = coinPackButton
@@ -427,8 +440,8 @@ vipCorner.Parent = vipButton
 
 local vipGradient = Instance.new("UIGradient")
 vipGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 0))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 0))
 }
 vipGradient.Rotation = 90
 vipGradient.Parent = vipButton
@@ -454,59 +467,151 @@ closeCorner.Parent = closeShopButton
 
 -- Add hover effect to buttons
 local function addHoverEffect(button)
-    local originalSize = button.Size
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.HOVER_DURATION), {
-            Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 10, originalSize.Y.Scale, originalSize.Y.Offset + 5)
-        }):Play()
-    end)
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.HOVER_DURATION), {
-            Size = originalSize
-        }):Play()
-    end)
+	local originalSize = button.Size
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.HOVER_DURATION), {
+			Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 10, originalSize.Y.Scale, originalSize.Y.Offset + 5)
+		}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.HOVER_DURATION), {
+			Size = originalSize
+		}):Play()
+	end)
 end
 
 -- Show coin popup animation
 local function showCoinPopup(amount)
-    if coinPopupFrame.Visible then wait(0.1) end
-    coinPopup.Text = amount >= 0 and "+" .. amount or tostring(amount)
-    coinPopup.TextColor3 = amount >= 0 and CONFIG.UI.COIN_COLOR or Color3.fromRGB(255, 100, 100)
-    coinPopupFrame.Visible = true
-    local tween = TweenService:Create(coinPopupFrame, TweenInfo.new(CONFIG.ANIMATION.COIN_POPUP_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 150, 0, 30),
-        Transparency = 1
-    })
-    tween:Play()
-    tween.Completed:Connect(function()
-        coinPopupFrame.Visible = false
-        coinPopupFrame.Transparency = 0
-        coinPopupFrame.Position = CONFIG.UI.COIN_POPUP_POSITION
-    end)
+	if coinPopupFrame.Visible then wait(0.1) end
+	coinPopup.Text = amount >= 0 and "+" .. amount or tostring(amount)
+	coinPopup.TextColor3 = amount >= 0 and CONFIG.UI.COIN_COLOR or Color3.fromRGB(255, 100, 100)
+	coinPopupFrame.Visible = true
+	local tween = TweenService:Create(coinPopupFrame, TweenInfo.new(CONFIG.ANIMATION.COIN_POPUP_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 150, 0, 30),
+		Transparency = 1
+	})
+	tween:Play()
+	tween.Completed:Connect(function()
+		coinPopupFrame.Visible = false
+		coinPopupFrame.Transparency = 0
+		coinPopupFrame.Position = CONFIG.UI.COIN_POPUP_POSITION
+	end)
 end
 
 -- Show response with animation
 local function showResponse(data, coins, rewardAmount)
-    responseFrame.Visible = false
-    responseFrame.BackgroundTransparency = CONFIG.UI.BACKGROUND_TRANSPARENCY
-    responseFrame.Position = CONFIG.UI.RESPONSE_FRAME_POSITION
-    responseLabel.Text = data.response
-    responseLabel.TextColor3 = data.personality.color
-    responseLabel.Font = data.personality.font
-    coinLabel.Text = "Coins: " .. coins
-    questionFrame.Visible = false
-    responseFrame.Visible = true
-    print("Client received reward: +" .. rewardAmount .. " coins, new total: " .. coins)
-    showCoinPopup(rewardAmount)
-    wait(CONFIG.ANIMATION.RESPONSE_DURATION)
-    TweenService:Create(responseFrame, TweenInfo.new(CONFIG.ANIMATION.FADE_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, -200, 0, 80)
-    }):Play()
-    wait(CONFIG.ANIMATION.FADE_DURATION)
-    responseFrame.Visible = false
-    game.ReplicatedStorage:WaitForChild("PromptEnableEvent"):FireServer(data.ball)
+	responseFrame.Visible = false
+	responseFrame.BackgroundTransparency = CONFIG.UI.BACKGROUND_TRANSPARENCY
+	responseFrame.Position = CONFIG.UI.RESPONSE_FRAME_POSITION
+	responseLabel.Text = data.response
+	responseLabel.TextColor3 = data.personality.color
+	responseLabel.Font = data.personality.font
+	coinLabel.Text = "Coins: " .. coins
+	questionFrame.Visible = false
+	responseFrame.Visible = true
+	print("Client received reward: +" .. rewardAmount .. " coins, new total: " .. coins)
+	showCoinPopup(rewardAmount)
+	wait(CONFIG.ANIMATION.RESPONSE_DURATION)
+	TweenService:Create(responseFrame, TweenInfo.new(CONFIG.ANIMATION.FADE_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0.5, -200, 0, 80)
+	}):Play()
+	wait(CONFIG.ANIMATION.FADE_DURATION)
+	responseFrame.Visible = false
+	game.ReplicatedStorage:WaitForChild("PromptEnableEvent"):FireServer(data.ball)
 end
+
+
+--[[
+    Camera Control
+    Functions for handling camera zoom effect
+]]
+
+-- Save current camera state
+local function saveCameraState()
+	originalCameraState = {
+		CameraType = camera.CameraType,
+		CFrame = camera.CFrame,
+		FieldOfView = camera.FieldOfView
+	}
+end
+
+-- Restore camera to original state
+local function restoreCameraState()
+	if originalCameraState then
+		camera.CameraType = originalCameraState.CameraType
+		camera.CFrame = originalCameraState.CFrame
+		camera.FieldOfView = originalCameraState.FieldOfView
+		originalCameraState = nil
+	end
+end
+
+-- Clean up camera effect
+local function cleanupCameraEffect()
+	if cameraTween then
+		cameraTween:Cancel()
+		cameraTween = nil
+	end
+	for _, connection in pairs(cameraConnections) do
+		if connection then 
+			connection:Disconnect()
+		end
+	end
+	cameraConnections = {}
+	restoreCameraState()
+end
+
+-- Start camera zoom effect
+local function startCameraZoom(ballModel)
+	if not ballModel then return end
+	local ballPart = ballModel:FindFirstChild("ballToon")
+	if not ballPart then return end
+	
+	-- Save current camera state
+	saveCameraState()
+	
+	-- Set camera to Scriptable for precise control
+	camera.CameraType = Enum.CameraType.Scriptable
+	
+	-- Calculate current distance to ball
+	local ballPos = ballPart.Position
+	local camPos = camera.CFrame.Position
+	local distance = (camPos - ballPos).Magnitude
+	
+	-- Clam distance to reasonable range
+	distance = math.clamp(distance, CONFIG.CAMERA.MIN_DISTANCE, CONFIG.CAMERA.MAX_DISTANCE)
+	
+	-- Calculate target position (closer to ball, same direction)
+	local direction = (ballPos - camPos).Unit
+	local targetDistance = distance * CONFIG.CAMERA.ZOOM_FRACTION
+	local targetPos = ballPos - direction * math.max(targetDistance, CONFIG.CAMERA.MIN_DISTANCE)
+	local targetCFrame = CFrame.new(targetPos, targetPos + direction * 10) -- Maintain original look direction 
+	
+	-- Tween to target position
+	local tweenInfo = TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Linear)
+	cameraTween = TweenService:Create(camera, tweenInfo, {CFrame = targetCFrame})
+	cameraTween:Play()
+	
+	-- Detect player input to cancel
+	local inputConnection
+	inputConnection = UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseWheel or
+		   input.UserInputType == Enum.UserInputType.MouseMovement or 
+		   input.UserInputType == Enum.UserInputType.Keyboard then
+			cleanupCameraEffect()
+		end
+	end)
+	cameraConnections.input = inputConnection
+	
+	-- Autorestore after duration
+	spawn(function()
+		wait(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION)
+		if cameraTween then
+			cleanupCameraEffect()
+		end
+	end)
+end
+
 
 --[[
     Event Handlers
@@ -522,82 +627,89 @@ addHoverEffect(closeShopButton)
 
 -- Handle personality button clicks
 for name, button in pairs(personalityButtons) do
-    button.MouseButton1Click:Connect(function()
-        selectSound:Play()
-        selectedPersonality = name
+	button.MouseButton1Click:Connect(function()
+		selectSound:Play()
+		selectedPersonality = name
 
-        -- Scale animation for click feedback
-        local originalSize = button.Size
-        TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.CLICK_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, originalSize.X.Offset + 10, 0, originalSize.Y.Offset + 10)
-        }):Play()
-        wait(CONFIG.ANIMATION.CLICK_DURATION)
-        TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.CLICK_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = originalSize
-        }):Play()
+		-- Scale animation for click feedback
+		local originalSize = button.Size
+		TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.CLICK_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, originalSize.X.Offset + 10, 0, originalSize.Y.Offset + 10)
+		}):Play()
+		wait(CONFIG.ANIMATION.CLICK_DURATION)
+		TweenService:Create(button, TweenInfo.new(CONFIG.ANIMATION.CLICK_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Size = originalSize
+		}):Play()
 
-        -- Update all buttons' appearance
-        for btnName, btn in pairs(personalityButtons) do
-            if btnName == selectedPersonality then
-                btn.BackgroundTransparency = 0
-                btn:FindFirstChild("ImageLabel").ImageTransparency = 0
-                btn:FindFirstChild("UIStroke").Transparency = 0
-            else
-                btn.BackgroundTransparency = 0.5
-                btn:FindFirstChild("ImageLabel").ImageTransparency = 0.5
-                btn:FindFirstChild("UIStroke").Transparency = 1
-            end
-        end
-    end)
+		-- Update all buttons' appearance
+		for btnName, btn in pairs(personalityButtons) do
+			if btnName == selectedPersonality then
+				btn.BackgroundTransparency = 0
+				btn:FindFirstChild("ImageLabel").ImageTransparency = 0
+				btn:FindFirstChild("UIStroke").Transparency = 0
+			else
+				btn.BackgroundTransparency = 0.5
+				btn:FindFirstChild("ImageLabel").ImageTransparency = 0.5
+				btn:FindFirstChild("UIStroke").Transparency = 1
+			end
+		end
+	end)
 end
 
 -- Handle shake button click
 shakeButton.MouseButton1Click:Connect(function()
-    if currentBall then
-        clickSound:Play()
-        questionFrame.Visible = false
-        currentBall.ShakeSound:Play()
-        shakeEvent:FireServer(currentBall, questionBox.Text, selectedPersonality)
-    end
+	if currentBall then
+		clickSound:Play()
+		questionFrame.Visible = false
+		currentBall.ShakeSound:Play()
+		shakeEvent:FireServer(currentBall, questionBox.Text, selectedPersonality)
+	end
 end)
 
 -- Handle shop button click
 shopButton.MouseButton1Click:Connect(function()
-    clickSound:Play()
-    shopFrame.Visible = true
-    questionFrame.Visible = false
-    responseFrame.Visible = false
+	clickSound:Play()
+	shopFrame.Visible = true
+	questionFrame.Visible = false
+	responseFrame.Visible = false
 end)
 
 -- Handle coin pack button click
 coinPackButton.MouseButton1Click:Connect(function()
-    clickSound:Play()
-    MarketplaceService:PromptProductPurchase(player, CONFIG.COIN_PACK_ID)
+	clickSound:Play()
+	MarketplaceService:PromptProductPurchase(player, CONFIG.COIN_PACK_ID)
 end)
 
 -- Handle VIP button click
 vipButton.MouseButton1Click:Connect(function()
-    clickSound:Play()
-    buyVIPEvent:FireServer()
+	clickSound:Play()
+	buyVIPEvent:FireServer()
 end)
 
 -- Handle close shop button click
 closeShopButton.MouseButton1Click:Connect(function()
-    clickSound:Play()
-    shopFrame.Visible = false
+	clickSound:Play()
+	shopFrame.Visible = false
 end)
 
 -- Handle shake event
 shakeEvent.OnClientEvent:Connect(function(data, coins)
-    if data.type == "Init" then
-        coinLabel.Text = "Coins: " .. coins
-    elseif data.type == "ShowQuestion" then
-        currentBall = data.ball
-        questionFrame.Visible = true
-        coinLabel.Text = "Coins: " .. coins
-    elseif data.type == "Response" then
-        showResponse(data, coins, data.rewardAmount or 0)
-    elseif data.type == "Busy" then
-        questionFrame.Visible = false
-    end
+	if data.type == "Init" then
+		coinLabel.Text = "Coins: " .. coins
+	elseif data.type == "ShowQuestion" then
+		currentBall = data.ball
+		questionFrame.Visible = true
+		coinLabel.Text = "Coins: " .. coins
+	elseif data.type == "Response" then
+		showResponse(data, coins, data.rewardAmount or 0)
+	elseif data.type == "Busy" then
+		questionFrame.Visible = false
+	elseif data.type == "StartShake" then
+		startCameraZoom(data.ball)
+	end
+end)
+
+-- Cleanup on player leaving
+player.AncestryChanged:Connect(function()
+	cleanupCameraEffect()
 end)
