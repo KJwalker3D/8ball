@@ -5,7 +5,6 @@
 local CONFIG = {
 	-- Game Settings
 	DEFAULT_COINS = 100,
-	DAILY_BONUS_AMOUNT = 100,
 	SHAKE_REWARD_VIP = 10,
 	SHAKE_REWARD_NORMAL = 5,
 
@@ -32,15 +31,13 @@ local CONFIG = {
 		CELEBRATION_SOUND_SWEET = "rbxassetid://111598396888819",
 		CELEBRATION_SOUND_SARCASTIC = "rbxassetid://18204124897",
 		BADGE_SOUND = "rbxassetid://6648577112",
-		DAILY_BONUS_SOUND = "rbxassetid://9125644905",
 
 		-- Particles
 		CELEBRATION_PARTICLES_ANGRY = "rbxassetid://16933997761",
 		CELEBRATION_PARTICLES_MYSTERIOUS = "rbxassetid://6700009498",
 		CELEBRATION_PARTICLES_SWEET = "rbxassetid://5762409776",
 		CELEBRATION_PARTICLES_SARCASTIC = "rbxassetid://16908034492",
-		BADGE_PARTICLES = "rbxassetid://18699497367",
-		DAILY_BONUS_PARTICLES = "rbxassetid://438224846"
+		BADGE_PARTICLES = "rbxassetid://18699497367"
 	},
 
 	-- Product IDs
@@ -62,7 +59,32 @@ local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local BadgeService = game:GetService("BadgeService")
-local CoinSaver = require(game.ServerScriptService.CoinSaver)
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Load CoinSaver with error handling
+local CoinSaver
+local success, result = pcall(function()
+	CoinSaver = require(ServerScriptService.CoinSaver)
+end)
+if not success then
+	warn("[ShakeScript] Failed to load CoinSaver: " .. tostring(result))
+	CoinSaver = { loadData = function() return {Coins = CONFIG.DEFAULT_COINS, VIP = false} end, saveData = function() end }
+end
+
+-- Load DailyBonusManager with error handling
+local DailyBonusManager
+success, result = pcall(function()
+	DailyBonusManager = ServerScriptService.DailyBonusManager
+end)
+if not success then
+	warn("[ShakeScript] Failed to load DailyBonusManager: " .. tostring(result))
+	DailyBonusManager = {
+		checkAndAwardDailyBonus = function(player, ballModel, force)
+			warn("[ShakeScript] Fallback: DailyBonusManager not loaded")
+			return false
+		end
+	}
+end
 
 -- Model references
 local model = script.Parent
@@ -100,7 +122,6 @@ local spinSpeed = CONFIG.SPIN_SPEED
 -- State variables
 local isShaking = false
 local activeTweens = {} -- Track tweens for cleanup
-local forceDailyBonus = false
 
 -- Personalities
 local personalities = {
@@ -234,6 +255,9 @@ local function shakeBall(player, selectedPersonality)
 	local ballToon = model:WaitForChild("ballToon")
 	local originalCFrame = ball.CFrame
 
+	-- Notify client to start camera effect
+	shakeEvent:FireClient(player, {type = "StartShake", ball = model})
+
 	-- Select final personality
 	local final
 	if selectedPersonality == "Random" then
@@ -317,10 +341,12 @@ local function shakeBall(player, selectedPersonality)
 
 	-- Timeout to re-enable prompt if client doesn't respond
 	spawn(function()
-		wait(CONFIG.PROMPT_TIMEOUT)
+		wait(CONFIG.PROMPT_TIMEOUT
+
+		)
 		if not prompt.Enabled then
 			prompt.Enabled = true
-			print("Prompt re-enabled via timeout for " .. player.Name)
+			warn("[ShakeScript] Prompt re-enabled via timeout for " .. player.Name)
 		end
 	end)
 
@@ -347,7 +373,7 @@ local function loadCoins(player)
 			return game:GetService("DataStoreService"):GetDataStore("PlayerCoinsV1"):GetAsync(player.UserId)
 		end)
 		if success then break end
-		warn("Failed to load coins for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
+		warn("[ShakeScript] Failed to load coins for " .. player.Name .. " (Attempt " .. i .. "): " .. tostring(data))
 		wait(2)
 	end
 	return success and data or CONFIG.DEFAULT_COINS
@@ -389,30 +415,6 @@ local function awardBadge(player, badgeId, badgeName)
 	end
 end
 
---- Shows the daily bonus animation and effects
---- @param player Player The player who received the daily bonus
-local function showDailyBonus(player)
-	local bonusParticles = createParticleEmitter(CONFIG.ASSET_IDS.DAILY_BONUS_PARTICLES, Color3.fromRGB(255, 215, 0), ball, 50)
-	bonusParticles.Enabled = true
-
-	local bonusSound = createSound(CONFIG.ASSET_IDS.DAILY_BONUS_SOUND, ball, 0.7)
-	bonusSound:Play()
-
-	local notification = createNotification("Daily Bonus: +100 Coins!", Color3.fromRGB(255, 215, 0), ball)
-
-	wait(1.5)
-	local tween = TweenService:Create(notification.textLabel, TweenInfo.new(0.5), {
-		TextTransparency = 1,
-		TextStrokeTransparency = 1
-	})
-	tween:Play()
-	wait(0.5)
-	bonusParticles.Enabled = false
-	bonusParticles:Destroy()
-	bonusSound:Destroy()
-	notification.billboard:Destroy()
-end
-
 --[[
     Animation Functions
     Functions that handle visual effects and animations
@@ -445,17 +447,17 @@ Players.PlayerAdded:Connect(function(player)
 			return CoinSaver.loadData(player)
 		end)
 		if success then
-			print("Coin load attempt", i, "for", player.Name, ": Coins =", data and data.Coins or "nil")
+			warn("[ShakeScript] Coin load attempt " .. i .. " for " .. player.Name .. ": Coins = " .. (data and data.Coins or "nil"))
 			break
 		end
-		warn("Failed to load CoinSaver data for", player.Name, "on attempt", i)
+		warn("[ShakeScript] Failed to load CoinSaver data for " .. player.Name .. " on attempt " .. i)
 		wait(1)
 	end
 
 	-- Fallback if load fails
 	if not success or not data or not data.Coins then
 		data = {Coins = CONFIG.DEFAULT_COINS, VIP = false}
-		warn("Using default data for", player.Name, ": Coins = " .. CONFIG.DEFAULT_COINS)
+		warn("[ShakeScript] Using default data for " .. player.Name .. ": Coins = " .. CONFIG.DEFAULT_COINS)
 	end
 
 	-- Initialize player data
@@ -492,21 +494,21 @@ Players.PlayerAdded:Connect(function(player)
 			return BadgeService:UserHasBadgeAsync(player.UserId, BADGE_ID_VISITOR)
 		end)
 		if badgeSuccess then
-			print("Badge check attempt", i, "for", player.Name, ": hasBadge =", hasBadge)
+			warn("[ShakeScript] Badge check attempt " .. i .. " for " .. player.Name .. ": hasBadge = " .. tostring(hasBadge))
 			break
 		end
-		warn("Failed to check Welcome badge for", player.Name, "on attempt", i)
+		warn("[ShakeScript] Failed to check Welcome badge for " .. player.Name .. " on attempt " .. i)
 		wait(1)
 	end
 
 	if badgeSuccess and not hasBadge then
 		awardBadge(player, BADGE_ID_VISITOR, "Welcome!")
-		print("Awarded Welcome badge to", player.Name)
+		warn("[ShakeScript] Awarded Welcome badge to " .. player.Name)
 	else
 		if not badgeSuccess then
-			warn("All attempts failed to check Welcome badge for", player.Name)
+			warn("[ShakeScript] All attempts failed to check Welcome badge for " .. player.Name)
 		else
-			print(player.Name, "already has Welcome badge")
+			warn("[ShakeScript] " .. player.Name .. " already has Welcome badge")
 		end
 	end
 
@@ -536,44 +538,43 @@ end)
 prompt.Triggered:Connect(function(player)
 	if isShaking then
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
-		print("Prompt blocked: isShaking true")
+		warn("[ShakeScript] Prompt blocked: isShaking true for " .. player.Name)
 		return
 	end
 	prompt.Enabled = false
-	print("ProximityPrompt triggered for " .. player.Name .. ", prompt disabled")
+	warn("[ShakeScript] ProximityPrompt triggered for " .. player.Name .. ", prompt disabled")
 	clickBallSound:Play()
 	shakeEvent:FireClient(player, {type = "ShowQuestion", ball = model}, player:WaitForChild("Coins").Value)
 end)
 
 -- Remote event handlers
 shakeEvent.OnServerEvent:Connect(function(player, ballModel, question, selectedPersonality)
-	if ballModel ~= model then return end
+	if ballModel ~= model then
+		warn("[ShakeScript] Invalid ballModel for " .. player.Name)
+		return
+	end
 	if isShaking then
 		shakeEvent:FireClient(player, {type = "Busy", ball = model})
+		warn("[ShakeScript] Shake blocked: isShaking true for " .. player.Name)
 		return
 	end
 
+	warn("[ShakeScript] Processing shake for " .. player.Name)
 	local coins = player:WaitForChild("Coins")
 	local vip = player:WaitForChild("VIP")
 	local lastClaim = player:WaitForChild("LastClaim")
-	local currentTime = os.time()
-	local dayInSeconds = 24 * 60 * 60
 
 	-- Check and award daily bonus
-	if forceDailyBonus or (currentTime - lastClaim.Value >= dayInSeconds) then
-		coins.Value = coins.Value + CONFIG.DAILY_BONUS_AMOUNT
-		lastClaim.Value = currentTime
-		coinSound:Play()
-		showDailyBonus(player)
-		print("Daily Bonus Triggered for " .. player.Name .. ": +100 coins")
-	end
+	warn("[ShakeScript] Calling DailyBonusManager for " .. player.Name)
+	local bonusAwarded = DailyBonusManager.checkAndAwardDailyBonus(player, model, false) -- Changed to false to respect time check
+	warn("[ShakeScript] Daily bonus result for " .. player.Name .. ": " .. tostring(bonusAwarded))
 
 	-- Process shake with selected personality
 	local final = shakeBall(player, selectedPersonality)
 	local rewardAmount = vip.Value and CONFIG.SHAKE_REWARD_VIP or CONFIG.SHAKE_REWARD_NORMAL
 	coins.Value = coins.Value + rewardAmount
 	coinSound:Play()
-	print("Awarded " .. rewardAmount .. " coins to " .. player.Name .. " (VIP: " .. tostring(vip.Value) .. "), new total: " .. coins.Value)
+	warn("[ShakeScript] Awarded " .. rewardAmount .. " coins to " .. player.Name .. " (VIP: " .. tostring(vip.Value) .. "), new total: " .. coins.Value)
 
 	-- Check for Master Shaker badge
 	local shakeProgress = player:WaitForChild("ShakeProgress")
@@ -606,7 +607,7 @@ end)
 promptEnableEvent.OnServerEvent:Connect(function(player, ballModel)
 	if ballModel ~= model then return end
 	prompt.Enabled = true
-	print("Prompt re-enabled for " .. player.Name .. " after client fade")
+	warn("[ShakeScript] Prompt re-enabled for " .. player.Name .. " after client fade")
 end)
 
 buyVIPEvent.OnServerEvent:Connect(function(player)
@@ -637,7 +638,7 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 end
 
 -- Debug information
-print("Prompt created:", prompt.Parent == ball and "on ball" or "not on ball")
-print("Prompt enabled:", prompt.Enabled)
-print("Ball position:", ball.Position)
-print("Ball size:", ball.Size)
+warn("[ShakeScript] Prompt created: " .. (prompt.Parent == ball and "on ball" or "not on ball"))
+warn("[ShakeScript] Prompt enabled: " .. tostring(prompt.Enabled))
+warn("[ShakeScript] Ball position: " .. tostring(ball.Position))
+warn("[ShakeScript] Ball size: " .. tostring(ball.Size))
