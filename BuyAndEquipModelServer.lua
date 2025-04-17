@@ -1,12 +1,11 @@
+--=== BuyAndEquipModelServer (Revised with connection fix) ===--
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local module = {}
-
--- Debug
-warn("[BuyAndEquipModelServer] Loading as " .. tostring(script.ClassName))
 
 -- Events
 local BuyAndEquipModelEvent = ReplicatedStorage:WaitForChild("BuyAndEquipModelEvent")
@@ -18,23 +17,14 @@ local MODEL_COST = 100
 local TOY_NAME = "HoverToy"
 
 -- Dependencies
-local CoinSaver
-local success, result = pcall(function()
-	CoinSaver = require(ServerScriptService.CoinSaver)
-end)
-if not success then
-	warn("[BuyAndEquipModelServer] Failed to load CoinSaver: " .. tostring(result))
-	CoinSaver = { loadData = function() return {Coins = 100, Toys = {}} end, saveData = function() end }
-end
+local CoinSaver = require(ServerScriptService.CoinSaver)
 
--- Track equipped toys
+-- Track equipped toys and hover connections
 local equippedToys = {} -- [player] = toyInstance
+local hoverConnections = {} -- [player] = RBXScriptConnection
 
 function module.createHoverEffect(toy, character)
-	if not toy.PrimaryPart or not character:FindFirstChild("HumanoidRootPart") then
-		warn("[BuyAndEquipModelServer] Invalid toy or character for hover effect")
-		return
-	end
+	if not toy.PrimaryPart or not character:FindFirstChild("HumanoidRootPart") then return end
 
 	for _, child in pairs(toy:GetChildren()) do
 		if child:IsA("BodyPosition") or child:IsA("AlignPosition") then
@@ -60,7 +50,7 @@ function module.createHoverEffect(toy, character)
 	local startTime = os.clock()
 	local connection
 	connection = RunService.Heartbeat:Connect(function()
-		if not toy.Parent or not character.Parent or not character:FindFirstChild("HumanoidRootPart") then
+		if not toy.Parent or not character.Parent then
 			connection:Disconnect()
 			return
 		end
@@ -76,29 +66,20 @@ function module.createHoverEffect(toy, character)
 end
 
 function module.equipToy(player, character, toyName)
-	if not player or not character then
-		warn("[BuyAndEquipModelServer] Invalid player or character for equipToy")
-		return
-	end
-
 	if equippedToys[player] then
+		if hoverConnections[player] then
+			hoverConnections[player]:Disconnect()
+			hoverConnections[player] = nil
+		end
 		equippedToys[player]:Destroy()
 		equippedToys[player] = nil
+		character:SetAttribute("EquippedToy", "None")
 	end
 
-	if toyName == "None" then
-		return -- Unequip
-	end
+	if toyName == "None" then return end
 
 	local toyModel = ReplicatedStorage:FindFirstChild(toyName)
-	if not toyModel then
-		warn("[BuyAndEquipModelServer] " .. toyName .. " not found in ReplicatedStorage")
-		return
-	end
-	if not toyModel.PrimaryPart then
-		warn("[BuyAndEquipModelServer] " .. toyName .. " missing PrimaryPart")
-		return
-	end
+	if not toyModel or not toyModel.PrimaryPart then return end
 
 	local toy = toyModel:Clone()
 	toy.Parent = character
@@ -106,21 +87,16 @@ function module.equipToy(player, character, toyName)
 	equippedToys[player] = toy
 
 	local connection = module.createHoverEffect(toy, character)
-	if not connection then
-		warn("[BuyAndEquipModelServer] Failed to create hover effect for " .. player.Name)
+	if connection then
+		hoverConnections[player] = connection
 	end
+
+	character:SetAttribute("EquippedToy", toyName)
 end
 
 function module.handlePurchase(player)
-	if not player then
-		warn("[BuyAndEquipModelServer] No player provided")
-		return
-	end
 	local character = player.Character
-	if not character or not character:FindFirstChild("HumanoidRootPart") then
-		warn("[BuyAndEquipModelServer] No valid character for " .. player.Name)
-		return
-	end
+	if not character then return end
 
 	local coins = player:FindFirstChild("Coins")
 	local data = CoinSaver.loadData(player)
@@ -129,26 +105,20 @@ function module.handlePurchase(player)
 	if toys[TOY_NAME] then
 		module.equipToy(player, character, TOY_NAME)
 		NotifyEvent:FireClient(player, {type = "Success", message = "Equipped " .. TOY_NAME .. "!"})
-		warn("[BuyAndEquipModelServer] Equipped " .. TOY_NAME .. " for " .. player.Name)
 		return
 	end
 
-	if not coins then
-		NotifyEvent:FireClient(player, {type = "Error", message = "Coins not found!"})
-		warn("[BuyAndEquipModelServer] Coins not found for " .. player.Name)
+	if not coins or coins.Value < MODEL_COST then
+		NotifyEvent:FireClient(player, {type = "Error", message = "Not enough coins!"})
 		return
 	end
 
-	if coins.Value < MODEL_COST then
-		NotifyEvent:FireClient(player, {type = "Error", message = "Not enough coins! Need " .. MODEL_COST .. "."})
-		warn("[BuyAndEquipModelServer] Not enough coins for " .. player.Name .. ": " .. coins.Value)
-		return
-	end
-
-	coins.Value = coins.Value - MODEL_COST
+	coins.Value -= MODEL_COST
 	toys[TOY_NAME] = true
 	data.Coins = coins.Value
 	data.Toys = toys
+	CoinSaver.saveData(player, data)
+
 	local toysFolder = player:FindFirstChild("Toys") or Instance.new("Folder")
 	toysFolder.Name = "Toys"
 	toysFolder.Parent = player
@@ -156,13 +126,9 @@ function module.handlePurchase(player)
 	toyValue.Name = TOY_NAME
 	toyValue.Value = true
 	toyValue.Parent = toysFolder
-	CoinSaver.saveData(player, data)
 
 	module.equipToy(player, character, TOY_NAME)
-	NotifyEvent:FireClient(player, {type = "Success", message = "Purchased and equipped " .. TOY_NAME .. " for " .. MODEL_COST .. " coins!"})
-	warn("[BuyAndEquipModelServer] Purchased " .. TOY_NAME .. " for " .. player.Name .. ", new coins: " .. coins.Value)
+	NotifyEvent:FireClient(player, {type = "Success", message = "Purchased and equipped!"})
 end
-
-warn("[BuyAndEquipModelServer] Initialized")
 
 return module
