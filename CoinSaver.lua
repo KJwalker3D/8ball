@@ -1,140 +1,147 @@
---[[
-	CoinSaver Module
-	Handles player data persistence and migration
-]]
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local dataStore = DataStoreService:GetDataStore("PlayerDataV1")
 
---[[
-	Configuration
-	All settings and constants in one place
-]]
+local YOUR_USER_ID_HERE = 8044913826
+
 local CONFIG = {
-	-- DataStore Settings
 	DATASTORE_NAME = "PlayerDataV1",
-	OLD_DATASTORE_NAME = "PlayerCoinsV1", -- For migration
-	MAX_RETRIES = 3,
-	RETRY_DELAY = 2,
-	
-	-- Default Values
+	MAX_RETRIES = 5,
+	RETRY_DELAY = 3,
 	DEFAULT_COINS = 100,
 	DEFAULT_VIP = false,
-	
-	-- Error Messages
-	ERROR_SAVE = "Failed to save data for %s (Attempt %d): %s",
-	ERROR_LOAD = "Failed to load data for %s (Attempt %d): %s",
-	ERROR_MIGRATION = "Failed to migrate data for %s (Attempt %d): %s"
+	DEFAULT_TOYS = {},
+	ERROR_SAVE = "[CoinSaver] Failed to save data for %s (Attempt %d): %s",
+	ERROR_LOAD = "[CoinSaver] Failed to load data for %s (Attempt %d): %s"
 }
 
--- Services
-local DataStoreService = game:GetService("DataStoreService")
-local dataStore = DataStoreService:GetDataStore(CONFIG.DATASTORE_NAME)
-local oldCoinStore = DataStoreService:GetDataStore(CONFIG.OLD_DATASTORE_NAME)
-
--- Module table
 local CoinSaver = {}
 
---[[
-	Utility Functions
-	Helper functions for common operations
-]]
+-- Debounce saves
+local lastSave = {} -- [player.UserId] = tick()
 
---- Safely executes a function with retry logic
---- @param func function The function to execute
---- @param errorMessage string The error message format
---- @param playerName string The player's name
---- @return boolean, any Whether the function succeeded and its return value
 local function safeExecuteWithRetry(func, errorMessage, playerName)
 	local success, result
 	for i = 1, CONFIG.MAX_RETRIES do
 		success, result = pcall(func)
-		if success then break end
+		if success then
+			return success, result
+		end
 		warn(string.format(errorMessage, playerName, i, tostring(result)))
-		wait(CONFIG.RETRY_DELAY)
+		task.wait(CONFIG.RETRY_DELAY)
 	end
 	return success, result
 end
 
---- Validates player data structure
---- @param data table The data to validate
---- @return boolean Whether the data is valid
 local function validateData(data)
-	return type(data) == "table" 
-		and type(data.Coins) == "number" 
+	return type(data) == "table"
+		and type(data.Coins) == "number"
 		and type(data.VIP) == "boolean"
+		and type(data.Toys) == "table"
 end
 
---- Creates default player data
---- @return table The default data structure
 local function createDefaultData()
 	return {
 		Coins = CONFIG.DEFAULT_COINS,
-		VIP = CONFIG.DEFAULT_VIP
+		VIP = CONFIG.DEFAULT_VIP,
+		Toys = CONFIG.DEFAULT_TOYS
 	}
 end
 
---[[
-	Core Functions
-	Main data operations
-]]
+function CoinSaver.saveData(player, overrideData)
+	local playerName = player.Name
+	local userId = player.UserId
+	local now = tick()
+	if lastSave[userId] and now - lastSave[userId] < 5 then
+		warn("[CoinSaver] Save debounced for " .. playerName)
+		return
+	end
+	lastSave[userId] = now
 
---- Saves player data to the DataStore
---- @param player Player The player whose data to save
-function CoinSaver.saveData(player)
 	local success, err = safeExecuteWithRetry(
 		function()
-			local data = {
+			local toysFolder = player:FindFirstChild("Toys")
+			local toysData = {}
+			if toysFolder then
+				for _, toy in pairs(toysFolder:GetChildren()) do
+					if toy:IsA("BoolValue") then
+						toysData[toy.Name] = toy.Value
+					end
+				end
+			end
+			local data = overrideData or {
 				Coins = player:WaitForChild("Coins").Value,
-				VIP = player:WaitForChild("VIP").Value
+				VIP = player:WaitForChild("VIP").Value,
+				Toys = toysData
 			}
+			if player.UserId == YOUR_USER_ID_HERE then
+				data.Coins = math.max(data.Coins, 2000)
+				data.Toys.HoverToy = true
+			end
+			local toysLog = "{}"
+			if next(data.Toys) then
+				local toyEntries = {}
+				for k, v in pairs(data.Toys) do
+					table.insert(toyEntries, string.format("[%q]=%s", k, tostring(v)))
+				end
+				toysLog = "{" .. table.concat(toyEntries, ", ") .. "}"
+			end
+			warn("[CoinSaver] Saving data for " .. playerName .. ": Coins = " .. data.Coins .. ", Toys = " .. toysLog)
 			dataStore:SetAsync(player.UserId, data)
 		end,
 		CONFIG.ERROR_SAVE,
-		player.Name
+		playerName
 	)
-	
+
 	if not success then
-		warn("Final save failure for " .. player.Name .. ": " .. tostring(err))
+		warn("[CoinSaver] Final save failure for " .. playerName .. ": " .. tostring(err))
 	end
 end
 
---- Loads player data from the DataStore with migration support
---- @param player Player The player whose data to load
---- @return table The loaded player data
 function CoinSaver.loadData(player)
-	-- Try to load from new store
+	local playerName = player.Name
 	local success, data = safeExecuteWithRetry(
 		function()
 			return dataStore:GetAsync(player.UserId)
 		end,
 		CONFIG.ERROR_LOAD,
-		player.Name
+		playerName
 	)
-	
-	-- If data exists and is valid, return it
+
 	if success and data and validateData(data) then
+		if player.UserId == YOUR_USER_ID_HERE then
+			data.Coins = math.max(data.Coins, 2000)
+			data.Toys.HoverToy = true
+			CoinSaver.saveData(player, data)
+		end
+		local toysLog = "{}"
+		if next(data.Toys) then
+			local toyEntries = {}
+			for k, v in pairs(data.Toys) do
+				table.insert(toyEntries, string.format("[%q]=%s", k, tostring(v)))
+			end
+			toysLog = "{" .. table.concat(toyEntries, ", ") .. "}"
+		end
+		warn("[CoinSaver] Loaded valid data for " .. playerName .. ": Coins = " .. data.Coins .. ", Toys = " .. toysLog)
 		return data
 	end
-	
-	-- Try to migrate from old store
-	local oldSuccess, oldData = safeExecuteWithRetry(
-		function()
-			return oldCoinStore:GetAsync(player.UserId)
-		end,
-		CONFIG.ERROR_MIGRATION,
-		player.Name
-	)
-	
-	-- If old data exists, migrate it
-	if oldSuccess and oldData then
-		local migratedData = {
-			Coins = oldData,
-			VIP = CONFIG.DEFAULT_VIP
-		}
-		CoinSaver.saveData(player) -- Save to new store immediately
-		return migratedData
+
+	local defaultData = createDefaultData()
+	if player.UserId == YOUR_USER_ID_HERE then
+		defaultData.Coins = 2000
+		defaultData.Toys.HoverToy = true
 	end
-	
-	-- Return default data if all else fails
-	return createDefaultData()
+	warn("[CoinSaver] Using default data for " .. playerName .. ": Coins = " .. defaultData.Coins .. ", Toys = {[\"HoverToy\"]=true}")
+	return defaultData
 end
+
+-- Cleanup on server shutdown
+game:BindToClose(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		pcall(function()
+			CoinSaver.saveData(player)
+		end)
+	end
+end)
 
 return CoinSaver

@@ -441,7 +441,6 @@ Players.PlayerAdded:Connect(function(player)
 	local data
 	local success = false
 
-	-- Retry CoinSaver.loadData
 	for i = 1, 3 do
 		success, data = pcall(function()
 			return CoinSaver.loadData(player)
@@ -451,64 +450,43 @@ Players.PlayerAdded:Connect(function(player)
 			break
 		end
 		warn("[ShakeScript] Failed to load CoinSaver data for " .. player.Name .. " on attempt " .. i)
-		wait(1)
+		task.wait(1)
 	end
 
-	-- Fallback if load fails
-	if not success or not data or not data.Coins then
-		data = {Coins = CONFIG.DEFAULT_COINS, VIP = false}
+	if not success or not data then
+		data = {Coins = CONFIG.DEFAULT_COINS, VIP = false, Toys = {}}
 		warn("[ShakeScript] Using default data for " .. player.Name .. ": Coins = " .. CONFIG.DEFAULT_COINS)
 	end
 
-	-- Initialize player data
+	task.wait(2)
+
 	local coins = Instance.new("IntValue")
 	coins.Name = "Coins"
-	coins.Value = data.Coins or CONFIG.DEFAULT_COINS
+	coins.Value = data.Coins
 	coins.Parent = player
+
+	if player.UserId == 8044913826 and (coins.Value < 2000 or not data.Toys.HoverToy) then
+		coins.Value = 2000
+		data.Coins = 2000
+		data.Toys.HoverToy = true
+		CoinSaver.saveData(player, data)
+		warn("[ShakeScript] Synced 2000 coins and HoverToy for " .. player.Name)
+	end
 
 	local vip = Instance.new("BoolValue")
 	vip.Name = "VIP"
 	vip.Value = MarketplaceService:UserOwnsGamePassAsync(player.UserId, VIP_PASS_ID) or data.VIP
 	vip.Parent = player
 
-	local lastClaim = Instance.new("IntValue")
-	lastClaim.Name = "LastClaim"
-	lastClaim.Value = os.time()
-	lastClaim.Parent = player
-
-	-- Initialize shake progress tracking
-	local shakeProgress = Instance.new("Folder")
-	shakeProgress.Name = "ShakeProgress"
-	shakeProgress.Parent = player
-	for _, personality in pairs(personalities) do
-		local clicked = Instance.new("BoolValue")
-		clicked.Name = personality.type
-		clicked.Value = false
-		clicked.Parent = shakeProgress
-	end
-
-	-- Check and award Welcome badge
-	local badgeSuccess, hasBadge = false, false
-	for i = 1, 3 do
-		badgeSuccess, hasBadge = pcall(function()
-			return BadgeService:UserHasBadgeAsync(player.UserId, BADGE_ID_VISITOR)
-		end)
-		if badgeSuccess then
-			warn("[ShakeScript] Badge check attempt " .. i .. " for " .. player.Name .. ": hasBadge = " .. tostring(hasBadge))
-			break
-		end
-		warn("[ShakeScript] Failed to check Welcome badge for " .. player.Name .. " on attempt " .. i)
-		wait(1)
-	end
-
-	if badgeSuccess and not hasBadge then
-		awardBadge(player, BADGE_ID_VISITOR, "Welcome!")
-		warn("[ShakeScript] Awarded Welcome badge to " .. player.Name)
-	else
-		if not badgeSuccess then
-			warn("[ShakeScript] All attempts failed to check Welcome badge for " .. player.Name)
-		else
-			warn("[ShakeScript] " .. player.Name .. " already has Welcome badge")
+	local toysFolder = player:FindFirstChild("Toys") or Instance.new("Folder")
+	toysFolder.Name = "Toys"
+	toysFolder.Parent = player
+	for toyName, owned in pairs(data.Toys or {}) do
+		if owned and not toysFolder:FindFirstChild(toyName) then
+			local toyValue = Instance.new("BoolValue")
+			toyValue.Name = toyName
+			toyValue.Value = true
+			toyValue.Parent = toysFolder
 		end
 	end
 
