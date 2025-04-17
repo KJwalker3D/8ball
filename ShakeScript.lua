@@ -438,6 +438,13 @@ end)
 
 -- Player join/leave handlers
 Players.PlayerAdded:Connect(function(player)
+	-- increase jump height and power
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.UseJumpPower = true -- Make sure it's using JumpPower
+		humanoid.JumpPower = 75 -- Default is 50; increase this value as needed
+	end)
+	
 	local data
 	local success = false
 
