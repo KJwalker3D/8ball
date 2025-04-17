@@ -13,8 +13,8 @@ screenGui.Enabled = false -- Start invisible
 screenGui.Parent = playerGui
 
 local toolbarFrame = Instance.new("Frame")
-toolbarFrame.Size = UDim2.new(0.5, 0, 0, 50)
-toolbarFrame.Position = UDim2.new(0.25, 0, 1, -60)
+toolbarFrame.Size = UDim2.new(0, 70, 0, 50) -- Default for 1 toy
+toolbarFrame.Position = UDim2.new(0.5, -35, 1, -60) -- Centered
 toolbarFrame.BackgroundTransparency = 0.5
 toolbarFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toolbarFrame.BorderSizePixel = 0
@@ -86,19 +86,28 @@ local function updateToolbar()
 	if not toysFolder then
 		print("[ToyInventory] No Toys folder found")
 		screenGui.Enabled = false
+		toolbarFrame.Size = UDim2.new(0, 70, 0, 50)
+		toolbarFrame.Position = UDim2.new(0.5, -35, 1, -60)
 		return
 	end
 
-	local hasToys = false
+	local toyCount = 0
 	for toyName, _ in pairs(toyData) do
 		if toysFolder:FindFirstChild(toyName) then
 			local button = createToyButton(toyName)
 			button.Name = toyName
 			print("[ToyInventory] Created button for " .. tostring(toyName))
-			hasToys = true
+			toyCount = toyCount + 1
 		end
 	end
-	screenGui.Enabled = hasToys
+
+	-- Dynamic width: (cellSize + padding) * toyCount + padding
+	local cellSize = 50
+	local padding = 10
+	local width = toyCount * (cellSize + padding) + padding
+	toolbarFrame.Size = UDim2.new(0, width, 0, 50)
+	toolbarFrame.Position = UDim2.new(0.5, -width / 2, 1, -60)
+	screenGui.Enabled = toyCount > 0
 	updateButtonStates()
 end
 
@@ -133,6 +142,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 					warn("[ToyInventory] EquipToyEvent not found")
 					return
 				end
+				-- Toggle based on server state
 				local newEquipped = equippedToy == toyName and "None" or toyName
 				EquipToyEvent:FireServer(newEquipped)
 				equippedToy = newEquipped == "None" and nil or toyName
@@ -145,10 +155,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
-player.CharacterAdded:Connect(function()
-	equippedToy = nil
-	updateButtonStates()
-	print("[ToyInventory] Character reset, cleared equipped toy")
+-- Sync equipped state on character load
+player.CharacterAdded:Connect(function(character)
+	local toysFolder = player:FindFirstChild("Toys")
+	if toysFolder and toysFolder:FindFirstChild("HoverToy") then
+		-- Check if toy is equipped (server auto-equips on join)
+		local hasToyEquipped = character:FindFirstChild("HoverToy") ~= nil
+		equippedToy = hasToyEquipped and "HoverToy" or nil
+		updateButtonStates()
+		print("[ToyInventory] Character reset, equipped toy: " .. tostring(equippedToy))
+	else
+		equippedToy = nil
+		updateButtonStates()
+		print("[ToyInventory] Character reset, no toys owned")
+	end
 end)
 
 waitForToys()

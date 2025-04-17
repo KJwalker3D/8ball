@@ -2,8 +2,6 @@ local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local dataStore = DataStoreService:GetDataStore("PlayerDataV1")
 
-local YOUR_USER_ID_HERE = 8044913826
-
 local CONFIG = {
 	DATASTORE_NAME = "PlayerDataV1",
 	MAX_RETRIES = 5,
@@ -74,7 +72,7 @@ function CoinSaver.saveData(player, overrideData)
 				VIP = player:WaitForChild("VIP").Value,
 				Toys = toysData
 			}
-			if player.UserId == YOUR_USER_ID_HERE then
+			if player.UserId == 8044913826 then
 				data.Coins = math.max(data.Coins, 2000)
 				data.Toys.HoverToy = true
 			end
@@ -109,7 +107,7 @@ function CoinSaver.loadData(player)
 	)
 
 	if success and data and validateData(data) then
-		if player.UserId == YOUR_USER_ID_HERE then
+		if player.UserId == 8044913826 then
 			data.Coins = math.max(data.Coins, 2000)
 			data.Toys.HoverToy = true
 			CoinSaver.saveData(player, data)
@@ -127,7 +125,7 @@ function CoinSaver.loadData(player)
 	end
 
 	local defaultData = createDefaultData()
-	if player.UserId == YOUR_USER_ID_HERE then
+	if player.UserId == 8044913826 then
 		defaultData.Coins = 2000
 		defaultData.Toys.HoverToy = true
 	end

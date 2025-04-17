@@ -36,20 +36,21 @@ EquipToyEvent.OnServerEvent:Connect(function(player, toyName)
 	end
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
-		warn("[SetupEvents] No valid character for " .. player.Name)
+		warn("[SetupEvents] No valid character for " .. player.Name .. " when equipping " .. tostring(toyName))
 		return
 	end
 	local data = CoinSaver.loadData(player)
 	local toys = data.Toys or {}
 
 	if toyName ~= "None" and not toys[toyName] then
-		warn("[SetupEvents] " .. player.Name .. " does not own " .. toyName)
-		NotifyEvent:FireClient(player, {type = "Error", message = "You don't own " .. toyName .. "!"})
+		warn("[SetupEvents] " .. player.Name .. " does not own " .. tostring(toyName))
+		NotifyEvent:FireClient(player, {type = "Error", message = "You don't own " .. tostring(toyName) .. "!"})
 		return
 	end
 
 	BuyAndEquipModelServer.equipToy(player, character, toyName)
-	NotifyEvent:FireClient(player, {type = "Success", message = toyName == "None" and "Unequipped toy!" or "Equipped " .. toyName .. "!"})
+	NotifyEvent:FireClient(player, {type = "Success", message = toyName == "None" and "Unequipped toy!" or "Equipped " .. tostring(toyName) .. "!"})
+	warn("[SetupEvents] Processed equip request for " .. player.Name .. ": " .. tostring(toyName))
 end)
 
 -- Handle purchase
