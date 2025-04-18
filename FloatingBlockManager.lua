@@ -1,8 +1,14 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 print("FloatingBlockManager started")
+
+-- Create RemoteEvent for coin updates
+local CoinUpdateEvent = Instance.new("RemoteEvent")
+CoinUpdateEvent.Name = "CoinUpdateEvent"
+CoinUpdateEvent.Parent = ReplicatedStorage
 
 -- Configuration
 local CONFIG = {
@@ -58,7 +64,7 @@ local CONFIG = {
 	-- Performance Settings
 	MAX_CONCURRENT_TWEENS = 50, -- Increased from 10 to 50
 	TWEEN_CLEANUP_INTERVAL = 30, -- Seconds between cleanup of old tweens
-	DEBUG_MODE = true, -- Enable/disable debug prints
+	DEBUG_MODE = false, -- Enable/disable debug prints
 
 	-- Touch Settings
 	TOUCH_DEBOUNCE_TIME = 0.05, -- Reduced from 0.1 to 0.05 seconds
@@ -219,6 +225,9 @@ local function handleCoinCollection(player, blockModel)
 				debugPrint("Coins awarded to player", player.Name, 
 					"Old value:", oldValue, 
 					"New value:", coins.Value)
+
+				-- Notify client of coin update
+				CoinUpdateEvent:FireClient(player, coins.Value, CONFIG.COIN_REWARD)
 
 				-- Create notification
 				local notification = Instance.new("BillboardGui")

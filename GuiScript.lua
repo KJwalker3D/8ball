@@ -83,9 +83,9 @@ local CONFIG = {
 
 	-- Camera Settings
 	CAMERA = {
-		ZOOM_FRACTION = 0.7, -- Zoom to 70% of original distance
-		MIN_DISTANCE = 100, -- Prevent camera from getting too close
-		MAX_DISTANCE = 300 -- Cap initial distance for visibility
+		ZOOM_FRACTION = 0.5, -- Changed from 0.7 to 0.5 for more dramatic zoom
+		MIN_DISTANCE = 50, -- Changed from 100 to 50 to allow closer zoom
+		MAX_DISTANCE = 500 -- Changed from 300 to 500 to handle larger distances
 	}
 }
 
@@ -94,15 +94,30 @@ local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local camera = game.Workspace.CurrentCamera
 
--- Player references
+-- Wait for player and camera to be available
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Initialize camera after player is loaded
+local camera = workspace.CurrentCamera
+local function getCameraIfReady()
+	local cam = workspace.CurrentCamera
+	if cam and cam:IsA("Camera") then
+		return cam
+	end
+	return nil
+end
+
+-- Update camera reference when it changes
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+	camera = getCameraIfReady()
+end)
 
 -- Events
 local shakeEvent = game.ReplicatedStorage:WaitForChild("ShakeEvent")
 local buyVIPEvent = game.ReplicatedStorage:WaitForChild("BuyVIPEvent")
+local coinUpdateEvent = game.ReplicatedStorage:WaitForChild("CoinUpdateEvent")
 
 -- Sounds
 local clickSound = Instance.new("Sound")
@@ -489,7 +504,7 @@ local function showCoinPopup(amount)
 	coinPopup.TextColor3 = amount >= 0 and CONFIG.UI.COIN_COLOR or Color3.fromRGB(255, 100, 100)
 	coinPopupFrame.Visible = true
 	local tween = TweenService:Create(coinPopupFrame, TweenInfo.new(CONFIG.ANIMATION.COIN_POPUP_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Position = UDim2.new(0, 150, 0, 30),
+		Position = UDim2.new(0, 150, 0, 100),
 		Transparency = 1
 	})
 	tween:Play()
@@ -531,62 +546,6 @@ end
     Functions for handling camera zoom effect
 ]]
 
--- Save current camera state
-local function saveCameraState()
-	originalCameraState = {
-		CameraType = camera.CameraType,
-		CFrame = camera.CFrame,
-		FieldOfView = camera.FieldOfView
-	}
-end
-
--- Restore camera to original state
-local function restoreCameraState()
-	if originalCameraState then
-		camera.CameraType = originalCameraState.CameraType
-		camera.CFrame = originalCameraState.CFrame
-		camera.FieldOfView = originalCameraState.FieldOfView
-		originalCameraState = nil
-	end
-end
-
--- Tween camera back to original position gently
-local function tweenCameraOut()
-	if cameraOutTween then
-		cameraOutTween:Cancel()
-	end
-	cameraOutTween = TweenService:Create(camera, TweenInfo.new(CONFIG.ANIMATION.CAMERA_TWEEN_OUT_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		CFrame = originalCameraState.CFrame,
-		FieldOfView = originalCameraState.FieldOfView
-	})
-	cameraOutTween:Play()
-	cameraOutTween.Completed:Connect(function()
-		restoreCameraState()
-		cameraOutTween = nil
-	end)
-end
-
--- Start camera zoom effect
-local function startCameraZoom(ball)
-	saveCameraState()
-	local ballPos = ball.Position
-	local cameraPos = camera.CFrame.Position
-	local distance = (ballPos - cameraPos).Magnitude
-	local targetDistance = math.max(CONFIG.CAMERA.MIN_DISTANCE, math.min(CONFIG.CAMERA.MAX_DISTANCE, distance * CONFIG.CAMERA.ZOOM_FRACTION))
-	local targetPos = cameraPos + (ballPos - cameraPos).Unit * (distance - targetDistance)
-	local targetCFrame = CFrame.new(targetPos, ballPos)
-	local targetFOV = camera.FieldOfView * (distance / targetDistance)
-
-	if cameraZoomTween then
-		cameraZoomTween:Cancel()
-	end
-	cameraZoomTween = TweenService:Create(camera, TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		CFrame = targetCFrame,
-		FieldOfView = targetFOV
-	})
-	cameraZoomTween:Play()
-end
-
 -- Cleanup camera effect
 local function cleanupCameraEffect()
 	if cameraZoomTween then
@@ -597,7 +556,111 @@ local function cleanupCameraEffect()
 		cameraOutTween:Cancel()
 		cameraOutTween = nil
 	end
-	restoreCameraState()
+end
+
+-- Tween camera back to original position gently
+local function tweenCameraOut(initialState)
+	-- Check if we have a valid camera and camera state
+	if not camera or not camera:IsA("Camera") then
+		warn("No valid camera for tween out")
+		return
+	end
+
+	if not initialState then
+		warn("No initial camera state for tween out")
+		return
+	end
+
+	-- Cancel existing tween
+	if cameraOutTween then
+		cameraOutTween:Cancel()
+		cameraOutTween = nil
+	end
+
+	-- Restore the camera type first
+	camera.CameraType = initialState.CameraType
+
+	-- Create and play the tween
+	local tweenInfo = TweenInfo.new(
+		CONFIG.ANIMATION.CAMERA_TWEEN_OUT_DURATION,
+		Enum.EasingStyle.Quad,
+		Enum.EasingDirection.Out
+	)
+
+	-- Ensure we have valid CFrame and FieldOfView before creating tween
+	if not initialState.CFrame or not initialState.FieldOfView then
+		warn("Invalid camera state properties")
+		return
+	end
+
+	cameraOutTween = TweenService:Create(camera, tweenInfo, {
+		CFrame = initialState.CFrame,
+		FieldOfView = initialState.FieldOfView
+	})
+
+	cameraOutTween:Play()
+	cameraOutTween.Completed:Connect(function()
+		if cameraOutTween then
+			cameraOutTween = nil
+		end
+	end)
+end
+
+-- Start camera zoom effect
+local function startCameraZoom(ball)
+	-- Get current camera
+	local currentCamera = getCameraIfReady()
+	if not currentCamera then
+		warn("Camera not ready for zoom effect")
+		return
+	end
+
+	-- Get the ball's position from its PrimaryPart
+	local ballPart = ball:FindFirstChild("ballToon")
+	if not ballPart then
+		warn("Could not find ballToon part in ball model")
+		return
+	end
+
+	-- Store initial camera state
+	local initialCameraState = {
+		CameraType = currentCamera.CameraType,
+		CFrame = currentCamera.CFrame,
+		FieldOfView = currentCamera.FieldOfView
+	}
+
+	-- Set camera to Scriptable for precise control
+	currentCamera.CameraType = Enum.CameraType.Scriptable
+
+	-- Calculate zoom parameters
+	local ballPos = ballPart.Position
+	local cameraPos = currentCamera.CFrame.Position
+	local distance = (ballPos - cameraPos).Magnitude
+	local targetDistance = math.max(CONFIG.CAMERA.MIN_DISTANCE, math.min(CONFIG.CAMERA.MAX_DISTANCE, distance * CONFIG.CAMERA.ZOOM_FRACTION))
+	local targetPos = cameraPos + (ballPos - cameraPos).Unit * (distance - targetDistance)
+	local targetCFrame = CFrame.new(targetPos, ballPos)
+	local targetFOV = currentCamera.FieldOfView * (distance / targetDistance)
+
+	-- Cancel existing tween if any
+	if cameraZoomTween then
+		cameraZoomTween:Cancel()
+		cameraZoomTween = nil
+	end
+
+	-- Create and play new tween
+	cameraZoomTween = TweenService:Create(currentCamera, TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		CFrame = targetCFrame,
+		FieldOfView = targetFOV
+	})
+	cameraZoomTween:Play()
+
+	-- Auto-restore after duration
+	task.delay(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, function()
+		if cameraZoomTween then
+			cleanupCameraEffect()
+			tweenCameraOut(initialCameraState)
+		end
+	end)
 end
 
 --[[
@@ -684,6 +747,11 @@ shakeEvent.OnClientEvent:Connect(function(data)
 	elseif data.type == "StartShake" then
 		startCameraZoom(data.ball)
 	end
+end)
+
+-- Handle coin updates
+coinUpdateEvent.OnClientEvent:Connect(function(newCoins)
+	coinLabel.Text = "Coins: " .. newCoins
 end)
 
 -- Cleanup on player leaving
