@@ -5,10 +5,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 print("XylophoneManager started")
 
 -- Configuration
-local NOTES = {"C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"} -- 8 bars
+local NOTES = {"C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5"} -- 9 bars
 local SOUND_ID = "rbxassetid://7157832561" -- Single xylophone note
-local PITCHES = {1.0, 1.122, 1.26, 1.335, 1.498, 1.682, 1.888, 2.0} -- C4 to C5
-local DEBOUNCE_TIME = 0.3 -- Prevent sound spam
+local PITCHES = {1.0, 1.122, 1.26, 1.335, 1.498, 1.682, 1.888, 2.0, 2.244} -- C4 to D5
+local DEBOUNCE_TIME = 1 -- Prevent sound spam
 local DIP_DISTANCE = 0.5 -- Studs to dip (optional)
 local DIP_TIME = 0.2 -- Seconds for dip animation
 
