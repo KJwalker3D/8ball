@@ -84,8 +84,8 @@ local CONFIG = {
 	-- Camera Settings
 	CAMERA = {
 		ZOOM_FRACTION = 0.7, -- Zoom to 70% of original distance
-		MIN_DISTANCE = 5, -- Prevent camera from getting too close
-		MAX_DISTANCE = 50 -- Cap initial distance for visibility
+		MIN_DISTANCE = 100, -- Prevent camera from getting too close
+		MAX_DISTANCE = 300 -- Cap initial distance for visibility
 	}
 }
 
