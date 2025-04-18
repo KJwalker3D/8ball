@@ -13,6 +13,42 @@ local CONFIG = {
 	SOUND_FADE_DURATION = 1, -- Seconds for sound fade-out
 	TOUCH_ENDED_DEBOUNCE = 0.7, -- Seconds to verify player left
 
+	-- Coin Settings
+	COIN_REWARD = 1, -- Coins per collection
+	COIN_COOLDOWN = 30, -- Seconds between coin spawns
+	COIN_LIFETIME = 10, -- Seconds before coin disappears
+	COIN_SPAWN_HEIGHT = 20, -- Studs above block
+	COIN_SIZE = Vector3.new(2, 2, 2), -- Size of the coin
+	COIN_MATERIAL = Enum.Material.Neon, -- Material of the coin
+	COIN_COLOR = Color3.fromRGB(255, 215, 0), -- Gold color
+	COIN_SOUND_VOLUME = 1, -- Volume of collection sound
+	COIN_SOUND_ID = "rbxassetid://607665037",
+	COIN_PARTICLES_ID = "rbxassetid://18699497367",
+
+	-- Coin Notification Settings
+	COIN_NOTIFICATION_DURATION = 2, -- Seconds to show notification
+	COIN_NOTIFICATION_COLOR = Color3.fromRGB(255, 215, 0), -- Gold color
+	COIN_NOTIFICATION_SIZE = UDim2.new(0, 200, 0, 50), -- Size of notification
+	COIN_NOTIFICATION_TEXT = "+1 Coin!", -- Text to display
+	COIN_NOTIFICATION_FONT = Enum.Font.GothamBold, -- Font style
+	COIN_NOTIFICATION_TEXT_SIZE = 24, -- Font size
+
+	-- Coin Particle Settings
+	COIN_PARTICLE_RATE = 10, -- Particles per second
+	COIN_PARTICLE_LIFETIME = {min = 1, max = 2}, -- Seconds
+	COIN_PARTICLE_SPEED = {min = 2, max = 4}, -- Studs per second
+	COIN_PARTICLE_SPREAD = Vector2.new(90, 90), -- Degrees
+	COIN_PARTICLE_SIZE = {
+		{time = 0, size = 0.5},
+		{time = 0.5, size = 0.3},
+		{time = 1, size = 0.1}
+	},
+	COIN_PARTICLE_TRANSPARENCY = {
+		{time = 0, transparency = 0},
+		{time = 0.5, transparency = 0.5},
+		{time = 1, transparency = 1}
+	},
+
 	-- Animation Easing
 	SINK_EASING_STYLE = Enum.EasingStyle.Quad,
 	SINK_EASING_DIRECTION = Enum.EasingDirection.Out,
@@ -22,7 +58,7 @@ local CONFIG = {
 	-- Performance Settings
 	MAX_CONCURRENT_TWEENS = 50, -- Increased from 10 to 50
 	TWEEN_CLEANUP_INTERVAL = 30, -- Seconds between cleanup of old tweens
-	DEBUG_MODE = false, -- Enable/disable debug prints
+	DEBUG_MODE = true, -- Enable/disable debug prints
 
 	-- Touch Settings
 	TOUCH_DEBOUNCE_TIME = 0.05, -- Reduced from 0.1 to 0.05 seconds
@@ -64,12 +100,198 @@ local blockStates = {} -- [blockModel] = {isSunk, isAnimating, touchingPlayers, 
 local activeTweens = {} -- [part] = tween
 local taggedBlocks = {} -- Track valid blocks
 local tweenCount = 0 -- Track number of active tweens
+local coinCooldowns = {} -- [blockModel] = lastSpawnTime
 
 -- Performance monitoring
 local function debugPrint(...)
 	if CONFIG.DEBUG_MODE then
 		print(...)
 	end
+end
+
+-- Coin Functions
+local function createCoin(blockModel)
+	local coin = Instance.new("Part")
+	coin.Name = "CollectibleCoin"
+	coin.Shape = Enum.PartType.Cylinder
+	coin.Size = CONFIG.COIN_SIZE
+	coin.CanCollide = false
+	coin.Anchored = true
+	coin.Material = CONFIG.COIN_MATERIAL
+	coin.Color = CONFIG.COIN_COLOR
+
+	-- Position coin above block
+	local blockPos = blockModel.PrimaryPart.Position
+	coin.CFrame = CFrame.new(blockPos.X, blockPos.Y + CONFIG.COIN_SPAWN_HEIGHT, blockPos.Z)
+
+	-- Add particles
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = coin
+
+	local particles = Instance.new("ParticleEmitter")
+	particles.Texture = CONFIG.COIN_PARTICLES_ID
+	particles.Lifetime = NumberRange.new(CONFIG.COIN_PARTICLE_LIFETIME.min, CONFIG.COIN_PARTICLE_LIFETIME.max)
+	particles.Rate = CONFIG.COIN_PARTICLE_RATE
+	particles.Speed = NumberRange.new(CONFIG.COIN_PARTICLE_SPEED.min, CONFIG.COIN_PARTICLE_SPEED.max)
+	particles.SpreadAngle = CONFIG.COIN_PARTICLE_SPREAD
+
+	-- Convert size sequence
+	local sizeKeypoints = {}
+	for _, point in ipairs(CONFIG.COIN_PARTICLE_SIZE) do
+		table.insert(sizeKeypoints, NumberSequenceKeypoint.new(point.time, point.size))
+	end
+	particles.Size = NumberSequence.new(sizeKeypoints)
+
+	-- Convert transparency sequence
+	local transparencyKeypoints = {}
+	for _, point in ipairs(CONFIG.COIN_PARTICLE_TRANSPARENCY) do
+		table.insert(transparencyKeypoints, NumberSequenceKeypoint.new(point.time, point.transparency))
+	end
+	particles.Transparency = NumberSequence.new(transparencyKeypoints)
+
+	particles.Color = ColorSequence.new(CONFIG.COIN_COLOR)
+	particles.Parent = attachment
+
+	coin.Parent = Workspace
+
+	-- Set lifetime
+	task.delay(CONFIG.COIN_LIFETIME, function()
+		if coin and coin.Parent then
+			coin:Destroy()
+		end
+	end)
+
+	return coin
+end
+
+-- Add coin collection handler
+local function handleCoinCollection(player, blockModel)
+	if not player or not player.Character then 
+		debugPrint("Coin collection failed: Player or character not found")
+		return 
+	end
+	local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then 
+		debugPrint("Coin collection failed: HumanoidRootPart not found for player", player.Name)
+		return 
+	end
+
+	-- Check cooldown
+	local currentTime = tick()
+	if coinCooldowns[blockModel] and currentTime - coinCooldowns[blockModel] < CONFIG.COIN_COOLDOWN then
+		debugPrint("Coin collection skipped: Cooldown active for block", blockModel.Name, 
+			"Time remaining:", CONFIG.COIN_COOLDOWN - (currentTime - coinCooldowns[blockModel]))
+		return
+	end
+
+	-- Spawn coin
+	local coin = createCoin(blockModel)
+	coinCooldowns[blockModel] = currentTime
+	debugPrint("Coin spawned for player", player.Name, "at block", blockModel.Name)
+
+	-- Create a touch connection for the coin
+	local touchConnection
+	touchConnection = coin.Touched:Connect(function(hit)
+		local touchingPlayer = Players:GetPlayerFromCharacter(hit.Parent)
+		if touchingPlayer and touchingPlayer == player then
+			debugPrint("Coin touched by player", player.Name)
+
+			-- Create and play sound on player's character
+			local sound = Instance.new("Sound")
+			sound.SoundId = CONFIG.COIN_SOUND_ID
+			sound.Volume = CONFIG.COIN_SOUND_VOLUME
+			sound.Parent = humanoidRootPart
+			sound:Play()
+			debugPrint("Coin collection sound played for player", player.Name)
+
+			-- Clean up sound after playing
+			task.delay(sound.TimeLength, function()
+				if sound and sound.Parent then
+					sound:Destroy()
+				end
+			end)
+
+			-- Award coins to player
+			local coins = player:FindFirstChild("Coins")
+			if coins then
+				local oldValue = coins.Value
+				coins.Value = coins.Value + CONFIG.COIN_REWARD
+				debugPrint("Coins awarded to player", player.Name, 
+					"Old value:", oldValue, 
+					"New value:", coins.Value)
+
+				-- Create notification
+				local notification = Instance.new("BillboardGui")
+				notification.Name = "CoinNotification"
+				notification.Size = CONFIG.COIN_NOTIFICATION_SIZE
+				notification.AlwaysOnTop = true
+
+				local textLabel = Instance.new("TextLabel")
+				textLabel.Size = UDim2.new(1, 0, 1, 0)
+				textLabel.BackgroundTransparency = 1
+				textLabel.Text = CONFIG.COIN_NOTIFICATION_TEXT
+				textLabel.TextColor3 = CONFIG.COIN_NOTIFICATION_COLOR
+				textLabel.Font = CONFIG.COIN_NOTIFICATION_FONT
+				textLabel.TextSize = CONFIG.COIN_NOTIFICATION_TEXT_SIZE
+				textLabel.TextStrokeTransparency = 0
+				textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+				textLabel.Parent = notification
+
+				notification.Parent = humanoidRootPart
+				debugPrint("Coin notification created for player", player.Name)
+
+				-- Animate notification
+				local startPos = humanoidRootPart.Position
+				local tweenInfo = TweenInfo.new(
+					CONFIG.COIN_NOTIFICATION_DURATION,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out
+				)
+
+				local tween = TweenService:Create(
+					notification,
+					tweenInfo,
+					{
+						StudsOffset = Vector3.new(0, 5, 0),
+						StudsOffsetWorldSpace = startPos + Vector3.new(0, 5, 0)
+					}
+				)
+
+				tween:Play()
+				debugPrint("Coin notification animation started for player", player.Name)
+
+				-- Clean up notification
+				task.delay(CONFIG.COIN_NOTIFICATION_DURATION, function()
+					if notification and notification.Parent then
+						notification:Destroy()
+						debugPrint("Coin notification cleaned up for player", player.Name)
+					end
+				end)
+			else
+				debugPrint("Warning: Coins value not found for player", player.Name)
+			end
+
+			-- Clean up
+			if touchConnection then
+				touchConnection:Disconnect()
+				debugPrint("Coin touch connection cleaned up for player", player.Name)
+			end
+			coin:Destroy()
+			debugPrint("Coin destroyed for player", player.Name)
+		end
+	end)
+
+	-- Set lifetime
+	task.delay(CONFIG.COIN_LIFETIME, function()
+		if coin and coin.Parent then
+			if touchConnection then
+				touchConnection:Disconnect()
+				debugPrint("Coin touch connection cleaned up (lifetime expired) for player", player.Name)
+			end
+			coin:Destroy()
+			debugPrint("Coin destroyed (lifetime expired) for player", player.Name)
+		end
+	end)
 end
 
 -- Tween management
@@ -455,6 +677,8 @@ local function setupBlock(blockModel)
 									end)
 								end
 							end
+							-- Spawn coin when block is touched
+							handleCoinCollection(player, blockModel)
 						end
 					end
 				end
