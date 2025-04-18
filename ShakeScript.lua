@@ -74,7 +74,8 @@ end
 -- Load DailyBonusManager with error handling
 local DailyBonusManager
 success, result = pcall(function()
-	DailyBonusManager = ServerScriptService.DailyBonusManager
+	DailyBonusManager = require(ServerScriptService:WaitForChild("DailyBonusManager"))
+
 end)
 if not success then
 	warn("[ShakeScript] Failed to load DailyBonusManager: " .. tostring(result))
@@ -155,7 +156,7 @@ local personalities = {
 local prompt = Instance.new("ProximityPrompt")
 prompt.ActionText = "Ask the 8-Ball"
 prompt.HoldDuration = 0.5
-prompt.MaxActivationDistance = 30
+prompt.MaxActivationDistance = 600
 prompt.RequiresLineOfSight = false
 prompt.Enabled = true
 prompt.Parent = ball
@@ -445,6 +446,18 @@ Players.PlayerAdded:Connect(function(player)
 		humanoid.JumpPower = 75 -- Default is 50; increase this value as needed
 	end)
 	
+	
+	local shakeProgress = Instance.new("Folder")
+	shakeProgress.Name = "ShakeProgress"
+	shakeProgress.Parent = player
+
+	for _, personality in pairs(personalities) do
+		local val = Instance.new("BoolValue")
+		val.Name = personality.type
+		val.Value = false
+		val.Parent = shakeProgress
+	end
+	
 	local data
 	local success = false
 
@@ -547,7 +560,7 @@ shakeEvent.OnServerEvent:Connect(function(player, ballModel, question, selectedP
 	warn("[ShakeScript] Processing shake for " .. player.Name)
 	local coins = player:WaitForChild("Coins")
 	local vip = player:WaitForChild("VIP")
-	local lastClaim = player:WaitForChild("LastClaim")
+	--local lastClaim = player:WaitForChild("LastClaim")
 
 	-- Check and award daily bonus
 	warn("[ShakeScript] Calling DailyBonusManager for " .. player.Name)
