@@ -57,7 +57,7 @@ function module.createHoverEffect(toy, character)
 		local t = os.clock() - startTime
 		local hoverOffset = math.sin(t * 0.5) * 0.5
 		local spinAngle = t * 36
-		local targetPos = character.HumanoidRootPart.Position + Vector3.new(0, 5 + hoverOffset, 0)
+		local targetPos = character.HumanoidRootPart.Position + Vector3.new(2, 5 + hoverOffset, 0)
 		alignPos.Position = targetPos
 		toy:SetPrimaryPartCFrame(CFrame.new(targetPos) * CFrame.Angles(0, math.rad(spinAngle), 0))
 	end)
