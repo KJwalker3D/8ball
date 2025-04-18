@@ -80,7 +80,7 @@ local CONFIG = {
 		CAMERA_ZOOM_DURATION = 6,
 		CAMERA_TWEEN_OUT_DURATION = 1
 	},
-	
+
 	-- Camera Settings
 	CAMERA = {
 		ZOOM_FRACTION = 0.7, -- Zoom to 70% of original distance
@@ -341,37 +341,6 @@ responseLabel.TextColor3 = CONFIG.UI.TEXT_COLOR
 responseLabel.Font = Enum.Font.SourceSansBold
 responseLabel.Parent = responseFrame
 
--- Create coin popup frame
-local coinPopupFrame = Instance.new("Frame")
-coinPopupFrame.Size = CONFIG.UI.COIN_POPUP_SIZE
-coinPopupFrame.Position = CONFIG.UI.COIN_POPUP_POSITION
-coinPopupFrame.BackgroundColor3 = CONFIG.UI.BACKGROUND_COLOR
-coinPopupFrame.BackgroundTransparency = CONFIG.UI.BACKGROUND_TRANSPARENCY
-coinPopupFrame.Visible = false
-coinPopupFrame.Parent = screenGui
-
-local coinPopupCorner = Instance.new("UICorner")
-coinPopupCorner.CornerRadius = CONFIG.UI.SMALL_CORNER_RADIUS
-coinPopupCorner.Parent = coinPopupFrame
-
-local coinPopupGradient = Instance.new("UIGradient")
-coinPopupGradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
-}
-coinPopupGradient.Rotation = 90
-coinPopupGradient.Parent = coinPopupFrame
-
-local coinPopup = Instance.new("TextLabel")
-coinPopup.Size = UDim2.new(1, -10, 1, 0)
-coinPopup.Position = UDim2.new(0, 5, 0, 0)
-coinPopup.BackgroundTransparency = 1
-coinPopup.Text = "+5"
-coinPopup.TextScaled = true
-coinPopup.TextColor3 = CONFIG.UI.COIN_COLOR
-coinPopup.Font = Enum.Font.SourceSansBold
-coinPopup.Parent = coinPopupFrame
-
 -- Create shop frame
 local shopFrame = Instance.new("Frame")
 shopFrame.Size = CONFIG.UI.SHOP_FRAME_SIZE
@@ -462,6 +431,37 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = CONFIG.UI.CORNER_RADIUS
 closeCorner.Parent = closeShopButton
 
+-- Create coin popup frame
+local coinPopupFrame = Instance.new("Frame")
+coinPopupFrame.Size = CONFIG.UI.COIN_POPUP_SIZE
+coinPopupFrame.Position = CONFIG.UI.COIN_POPUP_POSITION
+coinPopupFrame.BackgroundColor3 = CONFIG.UI.BACKGROUND_COLOR
+coinPopupFrame.BackgroundTransparency = CONFIG.UI.BACKGROUND_TRANSPARENCY
+coinPopupFrame.Visible = false
+coinPopupFrame.Parent = screenGui
+
+local coinPopupCorner = Instance.new("UICorner")
+coinPopupCorner.CornerRadius = CONFIG.UI.SMALL_CORNER_RADIUS
+coinPopupCorner.Parent = coinPopupFrame
+
+local coinPopupGradient = Instance.new("UIGradient")
+coinPopupGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 70)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+}
+coinPopupGradient.Rotation = 90
+coinPopupGradient.Parent = coinPopupFrame
+
+local coinPopup = Instance.new("TextLabel")
+coinPopup.Size = UDim2.new(1, -10, 1, 0)
+coinPopup.Position = UDim2.new(0, 5, 0, 0)
+coinPopup.BackgroundTransparency = 1
+coinPopup.Text = "+5"
+coinPopup.TextScaled = true
+coinPopup.TextColor3 = CONFIG.UI.COIN_COLOR
+coinPopup.Font = Enum.Font.SourceSansBold
+coinPopup.Parent = coinPopupFrame
+
 --[[
     Utility Functions
     Helper functions for common operations
@@ -501,18 +501,21 @@ local function showCoinPopup(amount)
 end
 
 -- Show response with animation
-local function showResponse(data, coins, rewardAmount)
+local function showResponse(data)
 	responseFrame.Visible = false
 	responseFrame.BackgroundTransparency = CONFIG.UI.BACKGROUND_TRANSPARENCY
 	responseFrame.Position = CONFIG.UI.RESPONSE_FRAME_POSITION
 	responseLabel.Text = data.response
 	responseLabel.TextColor3 = data.personality.color
 	responseLabel.Font = data.personality.font
-	coinLabel.Text = "Coins: " .. coins
 	questionFrame.Visible = false
 	responseFrame.Visible = true
-	print("Client received reward: +" .. rewardAmount .. " coins, new total: " .. coins)
-	showCoinPopup(rewardAmount)
+
+	-- Show coin popup if there's a reward
+	if data.rewardAmount and data.rewardAmount > 0 then
+		showCoinPopup(data.rewardAmount)
+	end
+
 	wait(CONFIG.ANIMATION.RESPONSE_DURATION)
 	TweenService:Create(responseFrame, TweenInfo.new(CONFIG.ANIMATION.FADE_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		BackgroundTransparency = 1,
@@ -522,7 +525,6 @@ local function showResponse(data, coins, rewardAmount)
 	responseFrame.Visible = false
 	game.ReplicatedStorage:WaitForChild("PromptEnableEvent"):FireServer(data.ball)
 end
-
 
 --[[
     Camera Control
@@ -548,38 +550,44 @@ local function restoreCameraState()
 	end
 end
 
-
 -- Tween camera back to original position gently
-local function tweenOutCamera()
-	if not originalCameraState then return end
-	
-	-- Cancel any existing twwnes
-	if cameraZoomTween then
-		cameraZoomTween:Cancel()
-		cameraZoomTween = nil
-	end
+local function tweenCameraOut()
 	if cameraOutTween then
 		cameraOutTween:Cancel()
-		cameraOutTween = nil
 	end
-	
-	-- Tween back to original CFrame
-	local tweenInfo = TweenInfo.new(
-		CONFIG.ANIMATION.CAMERA_TWEEN_OUT_DURATION,
-		Enum.EasingStyle.Sine,
-		Enum.EasingDirection.In
-	)
-	cameraOutTween = TweenService:Create(camera, tweenInfo, {CFrame = originalCameraState.CFrame})
+	cameraOutTween = TweenService:Create(camera, TweenInfo.new(CONFIG.ANIMATION.CAMERA_TWEEN_OUT_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		CFrame = originalCameraState.CFrame,
+		FieldOfView = originalCameraState.FieldOfView
+	})
 	cameraOutTween:Play()
-	
-	-- Restore camera type after tween
 	cameraOutTween.Completed:Connect(function()
 		restoreCameraState()
 		cameraOutTween = nil
 	end)
 end
 
--- Clean up camera effect
+-- Start camera zoom effect
+local function startCameraZoom(ball)
+	saveCameraState()
+	local ballPos = ball.Position
+	local cameraPos = camera.CFrame.Position
+	local distance = (ballPos - cameraPos).Magnitude
+	local targetDistance = math.max(CONFIG.CAMERA.MIN_DISTANCE, math.min(CONFIG.CAMERA.MAX_DISTANCE, distance * CONFIG.CAMERA.ZOOM_FRACTION))
+	local targetPos = cameraPos + (ballPos - cameraPos).Unit * (distance - targetDistance)
+	local targetCFrame = CFrame.new(targetPos, ballPos)
+	local targetFOV = camera.FieldOfView * (distance / targetDistance)
+
+	if cameraZoomTween then
+		cameraZoomTween:Cancel()
+	end
+	cameraZoomTween = TweenService:Create(camera, TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		CFrame = targetCFrame,
+		FieldOfView = targetFOV
+	})
+	cameraZoomTween:Play()
+end
+
+-- Cleanup camera effect
 local function cleanupCameraEffect()
 	if cameraZoomTween then
 		cameraZoomTween:Cancel()
@@ -589,82 +597,13 @@ local function cleanupCameraEffect()
 		cameraOutTween:Cancel()
 		cameraOutTween = nil
 	end
-	for _, connection in pairs(cameraConnections) do
-		if connection then 
-			connection:Disconnect()
-		end
-	end
-	cameraConnections = {}
---	restoreCameraState()
+	restoreCameraState()
 end
-
--- Start camera zoom effect
-local function startCameraZoom(ballModel)
-	if not ballModel then return end
-	local ballPart = ballModel:FindFirstChild("ballToon")
-	if not ballPart then return end
-	
-	cleanupCameraEffect()
-	
-	-- Save current camera state
-	saveCameraState()
-	
-	-- Set camera to Scriptable for precise control
-	camera.CameraType = Enum.CameraType.Scriptable
-	
-	-- Calculate current distance to ball
-	local ballPos = ballPart.Position
-	local camPos = camera.CFrame.Position
-	local distance = (camPos - ballPos).Magnitude
-	
-	-- Clam distance to reasonable range
-	distance = math.clamp(distance, CONFIG.CAMERA.MIN_DISTANCE, CONFIG.CAMERA.MAX_DISTANCE)
-	
-	-- Calculate target position (closer to ball, same direction)
-	local direction = (ballPos - camPos).Unit
-	local targetDistance = distance * CONFIG.CAMERA.ZOOM_FRACTION
-	local targetPos = ballPos - direction * math.max(targetDistance, CONFIG.CAMERA.MIN_DISTANCE)
-	local targetCFrame = CFrame.new(targetPos, targetPos + direction * 10) -- Maintain original look direction 
-	
-	-- Tween to target position
-	local tweenInfo = TweenInfo.new(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION, Enum.EasingStyle.Linear)
-	cameraZoomTween = TweenService:Create(camera, tweenInfo, {CFrame = targetCFrame})
-	cameraZoomTween:Play()
-	
-	-- Detect player input to cancel
-	local inputConnection
-	inputConnection = UserInputService.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseWheel or
-		   input.UserInputType == Enum.UserInputType.MouseMovement or 
-		   input.UserInputType == Enum.UserInputType.Keyboard then
-			cleanupCameraEffect()
-			tweenOutCamera()
-		end
-	end)
-	cameraConnections.input = inputConnection
-	
-	-- Autorestore after duration
-	spawn(function()
-		wait(CONFIG.ANIMATION.CAMERA_ZOOM_DURATION)
-		if cameraZoomTween then
-			cleanupCameraEffect()
-			tweenOutCamera()
-		end
-	end)
-end
-
 
 --[[
     Event Handlers
-    Functions that handle various game events
+    Functions for handling user input and game events
 ]]
-
--- Add hover effects to buttons
-addHoverEffect(shopButton)
-addHoverEffect(shakeButton)
-addHoverEffect(coinPackButton)
-addHoverEffect(vipButton)
-addHoverEffect(closeShopButton)
 
 -- Handle personality button clicks
 for name, button in pairs(personalityButtons) do
@@ -734,15 +673,12 @@ closeShopButton.MouseButton1Click:Connect(function()
 end)
 
 -- Handle shake event
-shakeEvent.OnClientEvent:Connect(function(data, coins)
-	if data.type == "Init" then
-		coinLabel.Text = "Coins: " .. coins
-	elseif data.type == "ShowQuestion" then
+shakeEvent.OnClientEvent:Connect(function(data)
+	if data.type == "ShowQuestion" then
 		currentBall = data.ball
 		questionFrame.Visible = true
-		coinLabel.Text = "Coins: " .. coins
 	elseif data.type == "Response" then
-		showResponse(data, coins, data.rewardAmount or 0)
+		showResponse(data)
 	elseif data.type == "Busy" then
 		questionFrame.Visible = false
 	elseif data.type == "StartShake" then
